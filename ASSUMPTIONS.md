@@ -36,7 +36,7 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A18.** Demo owner login: `demo@slotwise.example` with a fixed public password, shown in the README. Demo accounts can't reset their password or change their email. The `.example` domain means no mail could ever reach anyone.
 
 ## Webhooks
-- **A19.** Retry schedule: 8 attempts with exponential backoff (about 1 m, 5 m, 15 m, 1 h, 2 h, 4 h, 8 h, 8 h ≈ 24 h). HTTP URLs are allowed only when `NODE_ENV !== 'production'`, and private IPs stay blocked even in dev unless `WEBHOOK_ALLOW_PRIVATE=true`, which is used only by tests.
+- **A19.** Retry schedule: 8 attempts, with gaps of 1 m, 5 m, 30 m, 1 h, 3 h, 6 h and 12 h (≈ 23 h in total). HTTP URLs are allowed only when `NODE_ENV !== 'production'`, and private IPs stay blocked even in dev unless `WEBHOOK_ALLOW_PRIVATE=true`, which is refused in production and never set by default.
 
 ## Added while building (Phase 1)
 - **A20.** `pnpm setup` is a built-in pnpm command (it installs pnpm itself), so the project script is **`pnpm run setup`**. It lives in `scripts/setup.mjs`.
@@ -66,3 +66,6 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A41.** A confirmation or reschedule email whose booking has changed since the job was queued is skipped, because a newer email for the new version is already on its way.
 - **A42.** The widget shows 14 days at a time (Earlier/Later), with a staff picker only when more than one person delivers the chosen service ("Anyone available" by default). It finds the API from its own script URL, so a site embedding it from slotwise's domain needs no setup.
 - **A43.** `/b/{slug}` may be framed by other sites (it's a booking page). Every dashboard page sends `X-Frame-Options: DENY`.
+- **A44.** Webhook payloads carry ids and times only (booking, service, staff and customer ids, start/end, status, version). Receivers fetch customer details with their API key, which keeps personal data out of the 30-day delivery log.
+- **A45.** API keys can't be edited, only created and revoked. A revoked key stays listed, showing when it was last used. `last_used_at` is updated at most once a minute.
+- **A46.** Webhook endpoints can be switched off without deleting them. Deliveries to a switched-off or deleted endpoint are dropped silently.

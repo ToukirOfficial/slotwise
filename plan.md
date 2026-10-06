@@ -68,7 +68,7 @@ Full outbox relay (`SKIP LOCKED`), job-id helper. Confirmation (`.ics` REQUEST),
 `packages/widget` Web Component (Shadow DOM, esbuild IIFE, < 30 KB gz) with the `business`/`service`/`color` attributes and automatic text contrast. Four steps, "just taken" handling with `aria-live`, WCAG 2.2 AA. Served at `/widget/v1.js`, powers `/b/[slug]`. Settings tab with the embed code and a copy button.
 *Tests:* none (no rule-11 items).
 
-**Phase 7 — Developer API + webhooks** ☐
+**Phase 7 — Developer API + webhooks** ✅ done
 API keys (shown once, prefix + SHA-256, revoke, `last_used_at`, scope limits, 60/min per key with `Retry-After`). Webhook endpoints (AES-GCM secret shown once), signed delivery, SSRF-safe sender, 8 retries with backoff, delivery log, resend, and a test event. Swagger docs complete with examples. UI: API keys and webhooks tabs.
 *Tests:* API-key scope + tenant matrix; per-key rate limit; signature verification; private/loopback/metadata IPs rejected after DNS resolution; retries logged.
 
