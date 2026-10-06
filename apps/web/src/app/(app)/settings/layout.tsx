@@ -11,6 +11,7 @@ const TABS: { href: string; label: string; ownerOnly: boolean }[] = [
   { href: '/settings/services', label: 'Services', ownerOnly: true },
   { href: '/settings/staff', label: 'Staff', ownerOnly: true },
   { href: '/settings/hours', label: 'Hours & time off', ownerOnly: false },
+  { href: '/settings/widget', label: 'Widget', ownerOnly: true },
   { href: '/settings/audit', label: 'Audit log', ownerOnly: true },
 ];
 

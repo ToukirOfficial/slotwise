@@ -64,3 +64,5 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A39.** Owner notices go to every verified owner login of the business, as one job per booking version.
 - **A40.** If Redis lost a reminder and the 24-hour mark has already passed (but the appointment hasn't started, and it was booked more than 24 h ahead), the hourly reconcile sends the reminder straight away rather than skipping it.
 - **A41.** A confirmation or reschedule email whose booking has changed since the job was queued is skipped, because a newer email for the new version is already on its way.
+- **A42.** The widget shows 14 days at a time (Earlier/Later), with a staff picker only when more than one person delivers the chosen service ("Anyone available" by default). It finds the API from its own script URL, so a site embedding it from slotwise's domain needs no setup.
+- **A43.** `/b/{slug}` may be framed by other sites (it's a booking page). Every dashboard page sends `X-Frame-Options: DENY`.
