@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ErrorCode, type Me, type RegisterBody } from '@slotwise/shared';
+import { ErrorCode, type Me, RESERVED_SLUGS, type RegisterBody } from '@slotwise/shared';
 import { sha256 } from '../common/crypto.js';
 import { AppError } from '../common/errors.js';
 import { OutboxService } from '../outbox/outbox.service.js';
@@ -150,7 +150,7 @@ export class AuthService {
   }
 
   private async freeSlug(base: string): Promise<string> {
-    const root = base.length >= 3 ? base : `${base}-biz`;
+    const root = base.length >= 3 && !RESERVED_SLUGS.has(base) ? base : `${base}-biz`;
     for (let i = 0; i < 20; i++) {
       const candidate = i === 0 ? root : `${root}-${Math.floor(1000 + Math.random() * 9000)}`;
       const taken = await this.prisma.business.findUnique({ where: { slug: candidate }, select: { id: true } });
