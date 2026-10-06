@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, LayoutDashboard, LogOut, Menu, Settings } from 'lucide-react';
+import { CalendarDays, List, LogOut, Menu, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -18,7 +18,8 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Calendar', icon: CalendarDays },
+  { href: '/bookings', label: 'Bookings', icon: List },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
