@@ -23,7 +23,14 @@ export default function DashboardPage() {
                 Check your <Link className="underline underline-offset-4" href="/settings">business details and booking rules</Link>.
               </li>
               <li>
-                Add your <Link className="underline underline-offset-4" href="/settings/staff">staff</Link> and invite them.
+                Add your <Link className="underline underline-offset-4" href="/settings/services">services</Link>.
+              </li>
+              <li>
+                Add your <Link className="underline underline-offset-4" href="/settings/staff">staff</Link>, choose the
+                services each one delivers, and invite them.
+              </li>
+              <li>
+                Set everyone’s <Link className="underline underline-offset-4" href="/settings/hours">working hours</Link>.
               </li>
             </ol>
           </CardContent>

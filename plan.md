@@ -48,7 +48,7 @@ Each phase works end to end (API + UI). Each one ends with CLAUDE.md's quick pas
 Monorepo (pnpm, Turborepo, TypeScript strict, ESLint, Prettier), `pnpm setup`, CI workflow, Prisma 7 config, JSON logger with request id, error-code filter, Zod Standard Schema pipe + Swagger wiring, and the health endpoint. Tables: businesses, users, sessions, auth_tokens, staff, outbox_events. All `/auth/*` endpoints plus `/auth/me` and `GET/PATCH /business`. Global guard, roles, tenant context, Origin check and throttling. Staff CRUD + invite. Minimal outbox → worker → mail-to-file path for verify/reset/invite emails. UI: auth pages, dashboard shell, business settings, staff list + invite.
 *Tests:* login; refresh rotation; reuse revokes the family; login rate limit; tenant isolation and staff-role limits on business/staff.
 
-**Phase 2 — Services, staff hours, overrides** ☐
+**Phase 2 — Services, staff hours, overrides** ✅ done
 Services CRUD, staff↔service links, weekly hours (replace the whole week, no overlapping windows), date overrides. UI: services, staff services, hours editor with split shifts, overrides.
 *Tests:* tenant/permission matrix for services, hours and overrides (staff only own).
 

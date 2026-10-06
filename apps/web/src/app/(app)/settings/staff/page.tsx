@@ -1,6 +1,6 @@
 'use client';
 
-import type { Staff } from '@slotwise/shared';
+import type { Service, Staff } from '@slotwise/shared';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -11,6 +11,8 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { api, errorMessage } from '@/lib/api';
@@ -18,12 +20,75 @@ import { useSubmit } from '@/lib/forms';
 import { useApi } from '@/lib/use-api';
 
 type Page = { items: Staff[]; nextCursor: string | null };
-type DialogState = { kind: 'add' } | { kind: 'rename'; staff: Staff } | { kind: 'invite'; staff: Staff } | null;
+type DialogState =
+  | { kind: 'add' }
+  | { kind: 'rename'; staff: Staff }
+  | { kind: 'invite'; staff: Staff }
+  | { kind: 'services'; staff: Staff }
+  | null;
+
+/** Which services this person delivers. */
+function ServicesDialog({ staff, onClose, onDone }: { staff: Staff; onClose: () => void; onDone: () => void }) {
+  const services = useApi<{ items: Service[] }>('/services?limit=100');
+  const [selected, setSelected] = useState(new Set(staff.serviceIds));
+  const { pending, formError, run } = useSubmit();
+
+  const toggle = (id: string, on: boolean) => {
+    const next = new Set(selected);
+    if (on) next.add(id);
+    else next.delete(id);
+    setSelected(next);
+  };
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = await run(() => api(`/staff/${staff.id}/services`, { method: 'PUT', body: { serviceIds: [...selected] } }));
+    if (ok) onDone();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <form onSubmit={submit} className="grid gap-4">
+          <DialogHeader>
+            <DialogTitle>Services {staff.displayName} delivers</DialogTitle>
+          </DialogHeader>
+          <FormError message={formError} />
+          {services.error ? (
+            <ErrorState error={services.error} onRetry={services.reload} />
+          ) : !services.data ? (
+            <LoadingState />
+          ) : services.data.items.length === 0 ? (
+            <EmptyState title="No services yet">Add services under Settings → Services first.</EmptyState>
+          ) : (
+            <fieldset className="grid gap-3">
+              <legend className="sr-only">Services</legend>
+              {services.data.items.map((svc) => (
+                <div key={svc.id} className="flex items-center gap-2">
+                  <Checkbox id={`svc-${svc.id}`} checked={selected.has(svc.id)} onCheckedChange={(v) => toggle(svc.id, v === true)} />
+                  <Label htmlFor={`svc-${svc.id}`}>{svc.name}</Label>
+                </div>
+              ))}
+            </fieldset>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function StaffDialog({ state, onClose, onDone }: { state: DialogState; onClose: () => void; onDone: () => void }) {
   const [value, setValue] = useState('');
   const { pending, formError, fields, run } = useSubmit();
   if (!state) return null;
+  if (state.kind === 'services') return <ServicesDialog staff={state.staff} onClose={onClose} onDone={onDone} />;
 
   const config = {
     add: { title: 'Add staff', label: 'Name', button: 'Add', type: 'text' },
@@ -97,7 +162,9 @@ function StaffRow({ s, onChange, onEdit }: { s: Staff; onChange: () => void; onE
         <p className="font-medium truncate">
           {s.displayName} {s.id === me.user.staffId && <span className="text-muted-foreground font-normal">(you)</span>}
         </p>
-        <p className="text-sm text-muted-foreground truncate">{s.email ?? 'No login'}</p>
+        <p className="text-sm text-muted-foreground truncate">
+          {s.email ?? 'No login'} · {s.serviceIds.length} service{s.serviceIds.length === 1 ? '' : 's'}
+        </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {!s.active && <Badge variant="outline">Inactive</Badge>}
@@ -110,6 +177,7 @@ function StaffRow({ s, onChange, onEdit }: { s: Staff; onChange: () => void; onE
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => onEdit({ kind: 'rename', staff: s })}>Rename</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onEdit({ kind: 'services', staff: s })}>Services they deliver</DropdownMenuItem>
             {!s.hasLogin && (
               <DropdownMenuItem onSelect={() => onEdit({ kind: 'invite', staff: s })}>
                 {s.invitePending ? 'Resend invite' : 'Invite to log in'}

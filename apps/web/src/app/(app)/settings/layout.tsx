@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils';
 
 const TABS: { href: string; label: string; ownerOnly: boolean }[] = [
   { href: '/settings', label: 'Business', ownerOnly: true },
+  { href: '/settings/services', label: 'Services', ownerOnly: true },
   { href: '/settings/staff', label: 'Staff', ownerOnly: true },
+  { href: '/settings/hours', label: 'Hours & time off', ownerOnly: false },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
