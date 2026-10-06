@@ -1,6 +1,10 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ApiKeyAuthenticator } from './auth/api-key.authenticator.js';
+import { AvailabilityController } from './availability/availability.controller.js';
+import { AvailabilityService } from './availability/availability.service.js';
+import { PublicController } from './public/public.controller.js';
+import { PublicService } from './public/public.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
@@ -36,13 +40,19 @@ class ServicesModule {}
 @Module({ controllers: [ScheduleController], providers: [ScheduleService], exports: [ScheduleService] })
 class ScheduleModule {}
 
+@Module({ controllers: [AvailabilityController], providers: [AvailabilityService], exports: [AvailabilityService] })
+class AvailabilityModule {}
+
+@Module({ imports: [AvailabilityModule], controllers: [PublicController], providers: [PublicService], exports: [PublicService] })
+class PublicModule {}
+
 /** The HTTP API (src/main.ts). */
 @Module({})
 export class AppModule {
   static forConfig(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule],
+      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule, AvailabilityModule, PublicModule],
       controllers: [HealthController],
       providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
     };

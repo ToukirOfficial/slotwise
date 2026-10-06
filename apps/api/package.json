@@ -23,6 +23,7 @@
     "@nestjs/throttler": "6.7.1",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@slotwise/engine": "workspace:*",
     "@slotwise/shared": "workspace:*",
     "argon2": "^0.45.1",
     "bullmq": "^6.3.11",

@@ -1,12 +1,16 @@
 import { z } from 'zod';
 
+/** Slugs that would clash with routes (/api/v1/public/manage/…, /b/…, /widget/…). */
+export const RESERVED_SLUGS = new Set(['manage', 'api', 'admin', 'b', 'widget', 'public', 'docs', 'health']);
+
 export const slugSchema = z
   .string()
   .trim()
   .toLowerCase()
   .min(3)
   .max(60)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lower-case letters, numbers and single hyphens');
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lower-case letters, numbers and single hyphens')
+  .refine((s) => !RESERVED_SLUGS.has(s), 'That address is reserved');
 
 export const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #2563eb');
 
