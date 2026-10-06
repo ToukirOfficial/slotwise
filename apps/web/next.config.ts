@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
+      // The widget is loaded by customers' sites; cache it for an hour.
+      { source: '/widget/:file*', headers: [{ key: 'Cache-Control', value: 'public, max-age=3600' }] },
       // Keep the manage token out of Referer headers sent to other sites.
       { source: '/manage/:token*', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
       // The dashboard is never framed; /b/{slug} may be (it's a booking page).

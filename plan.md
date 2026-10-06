@@ -64,7 +64,7 @@ Exclusion-constraint migration (`--create-only`, commented). Create (public + au
 Full outbox relay (`SKIP LOCKED`), job-id helper. Confirmation (`.ics` REQUEST), cancellation (`.ics` CANCEL), reschedule, and owner notification emails, all through an `email_log` check. Reminder delayed job (skipped if the booking is < 24 h away), moved or removed on change. Stale-version check. Hourly reconcile. Manage-token endpoints and the `/manage/[token]` page with cut-off handling.
 *Tests:* crash between commit and enqueue → relay delivers; duplicate enqueue → one job; a stale reminder sends nothing; reconcile restores a deleted reminder; real BullMQ accepts the job ids; email_log dedupe.
 
-**Phase 6 — Embeddable widget** ☐
+**Phase 6 — Embeddable widget** ✅ done
 `packages/widget` Web Component (Shadow DOM, esbuild IIFE, < 30 KB gz) with the `business`/`service`/`color` attributes and automatic text contrast. Four steps, "just taken" handling with `aria-live`, WCAG 2.2 AA. Served at `/widget/v1.js`, powers `/b/[slug]`. Settings tab with the embed code and a copy button.
 *Tests:* none (no rule-11 items).
 
