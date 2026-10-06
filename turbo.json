@@ -41,6 +41,14 @@
     "DATABASE_URL",
     "TEST_DATABASE_URL",
     "REDIS_URL",
-    "API_URL"
+    "API_URL",
+    "WEB_URL",
+    "JWT_SECRET",
+    "ENCRYPTION_KEY",
+    "MANAGE_TOKEN_SECRET",
+    "SMTP_URL",
+    "MAIL_FROM",
+    "QUEUE_PREFIX",
+    "NODE_ENV"
   ]
 }
