@@ -8,3 +8,4 @@ export * from './availability.js';
 export * from './bookings.js';
 export * from './manage.js';
 export * from './developer.js';
+export * from './customers.js';
