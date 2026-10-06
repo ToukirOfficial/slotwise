@@ -3,11 +3,13 @@ import { Inject, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 import { requestContext } from '../common/request-context.js';
 import { OutboxService } from '../outbox/outbox.service.js';
+import { ReminderScheduler } from './reminder.scheduler.js';
 import { MAINTENANCE_QUEUE, type MaintenanceJobName } from './queues.js';
 
 /** Repeating jobs, registered when the worker starts. Times are UK local time. */
 const SCHEDULES: { name: MaintenanceJobName; repeat: { every: number } | { pattern: string; tz: string } }[] = [
   { name: 'outbox-relay', repeat: { every: 5_000 } },
+  { name: 'reminder-reconcile', repeat: { pattern: '7 * * * *', tz: 'Europe/London' } },
 ];
 
 @Processor(MAINTENANCE_QUEUE, { concurrency: 1 })
@@ -17,6 +19,7 @@ export class MaintenanceProcessor extends WorkerHost implements OnApplicationBoo
   constructor(
     @InjectQueue(MAINTENANCE_QUEUE) private readonly queue: Queue,
     @Inject(OutboxService) private readonly outbox: OutboxService,
+    @Inject(ReminderScheduler) private readonly reminders: ReminderScheduler,
   ) {
     super();
   }
@@ -42,6 +45,8 @@ export class MaintenanceProcessor extends WorkerHost implements OnApplicationBoo
         if (total > 0) this.log.log(`relay processed ${total} outbox events`);
         return total;
       }
+      case 'reminder-reconcile':
+        return this.reminders.reconcile();
       default:
         return undefined;
     }

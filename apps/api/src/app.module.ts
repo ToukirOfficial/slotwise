@@ -8,6 +8,8 @@ import { BookingsController } from './bookings/bookings.controller.js';
 import { BookingsService } from './bookings/bookings.service.js';
 import { IdempotencyService } from './bookings/idempotency.service.js';
 import { AvailabilityService } from './availability/availability.service.js';
+import { ManageController } from './public/manage.controller.js';
+import { ManageService } from './public/manage.service.js';
 import { PublicController } from './public/public.controller.js';
 import { PublicService } from './public/public.service.js';
 import { AuthController } from './auth/auth.controller.js';
@@ -61,8 +63,9 @@ class BookingsModule {}
 
 @Module({
   imports: [AvailabilityModule, BookingsModule],
-  controllers: [PublicController],
-  providers: [PublicService],
+  // ManageController first: /public/manage/:token must win over /public/:slug/… routes.
+  controllers: [ManageController, PublicController],
+  providers: [PublicService, ManageService],
   exports: [PublicService],
 })
 class PublicModule {}

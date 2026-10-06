@@ -5,7 +5,9 @@ import { PublicCache } from './business/public-cache.js';
 import { RateLimiter } from './common/rate-limit.js';
 import { APP_CONFIG, type AppConfig } from './config.js';
 import { EMAIL_QUEUE, MAINTENANCE_QUEUE, WEBHOOK_QUEUE } from './jobs/queues.js';
+import { ReminderScheduler } from './jobs/reminder.scheduler.js';
 import { BookingEventsHandler } from './outbox/booking-events.handler.js';
+import { WebhookFanout } from './outbox/webhook-fanout.js';
 import { OutboxService } from './outbox/outbox.service.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { RedisService } from './redis/redis.service.js';
@@ -23,7 +25,16 @@ export const redisConnection = (url: string) => {
   };
 };
 
-const shared = [PrismaService, RedisService, RateLimiter, PublicCache, OutboxService, BookingEventsHandler];
+const shared = [
+  PrismaService,
+  RedisService,
+  RateLimiter,
+  PublicCache,
+  OutboxService,
+  BookingEventsHandler,
+  ReminderScheduler,
+  WebhookFanout,
+];
 
 /** Everything both the API and the worker need: config, database, Redis, queues, outbox. */
 @Global()

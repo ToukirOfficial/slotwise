@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import { EMAIL_JOB_OPTS } from '../jobs/email-job-opts.js';
 import { jobId } from '../jobs/job-ids.js';
 import { EMAIL_QUEUE, type EmailJob } from '../jobs/queues.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
@@ -13,13 +14,6 @@ interface OutboxRow {
   payload_json: OutboxEventPayload;
 }
 
-export const EMAIL_JOB_OPTS = {
-  attempts: 8,
-  backoff: { type: 'exponential', delay: 30_000 },
-  // Completed jobs are removed: the email_log table (not Redis) is the record of what was sent.
-  removeOnComplete: true,
-  removeOnFail: { age: 7 * 24 * 3600 },
-} as const;
 
 /**
  * Outbox pattern: a change and its event are committed together (add() inside the caller's transaction).
@@ -71,19 +65,20 @@ export class OutboxService {
               ORDER BY created_at
               LIMIT ${limit}
               FOR UPDATE SKIP LOCKED`;
-        for (const row of rows) await this.handle(row);
+        for (const row of rows) await this.handle(tx, row);
         if (rows.length > 0) {
           await tx.$executeRaw`UPDATE outbox_events SET processed_at = now(), updated_at = now()
                                WHERE id = ANY(${rows.map((r) => r.id)}::uuid[])`;
         }
         return rows.length;
       },
-      { timeout: 30_000 },
+      // Many bookings at once each dispatch on their own connection: wait for one rather than fail fast.
+      { timeout: 30_000, maxWait: 15_000 },
     );
   }
 
   /** Turns one event into jobs. Must be safe to run more than once for the same event. */
-  private async handle(row: OutboxRow): Promise<void> {
+  private async handle(tx: Tx, row: OutboxRow): Promise<void> {
     const event = row.payload_json;
     switch (event.type) {
       case 'auth.verify_email':
@@ -100,7 +95,7 @@ export class OutboxService {
       case 'booking.created':
       case 'booking.cancelled':
       case 'booking.rescheduled':
-        await this.bookingEvents.handle(row.id, row.business_id, event);
+        await this.bookingEvents.handle(tx, row.id, row.business_id, event);
         return;
     }
   }

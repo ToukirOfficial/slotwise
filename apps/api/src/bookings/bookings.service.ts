@@ -232,7 +232,6 @@ export class BookingsService {
           cancelledAt: new Date(),
           cancelReason: reason ?? null,
           version: { increment: 1 },
-          manageTokenExpiresAt: new Date(),
         },
         include,
       });
