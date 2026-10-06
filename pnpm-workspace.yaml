@@ -13,3 +13,7 @@ allowBuilds:
   '@scarf/scarf': false
 minimumReleaseAgeExclude:
   - nodemailer@10.0.15
+# Security patches for build-time tools (pnpm audit): Prisma CLI's MySQL driver and config merger.
+overrides:
+  mysql2: '>=3.23.1'
+  deepmerge-ts: '>=8.0.0'
