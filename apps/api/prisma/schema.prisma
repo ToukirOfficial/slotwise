@@ -45,6 +45,7 @@ model Business {
 
   users        User[]
   staff        Staff[]
+  services     Service[]
   outboxEvents OutboxEvent[]
 
   @@map("businesses")
@@ -120,11 +121,85 @@ model Staff {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services      StaffService[]
+  weeklyHours   WeeklyHours[]
+  dateOverrides DateOverride[]
 
   @@index([businessId])
   @@map("staff")
+}
+
+/// Something a customer can book. Bookings keep their own snapshot, so editing a service never changes them.
+/// Checks (hand-written in the migration): duration 1–1440, buffers 0–240, price >= 0.
+model Service {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  businessId      String   @map("business_id") @db.Uuid
+  name            String
+  durationMin     Int      @map("duration_min")
+  bufferBeforeMin Int      @default(0) @map("buffer_before_min")
+  bufferAfterMin  Int      @default(0) @map("buffer_after_min")
+  pricePence      Int      @default(0) @map("price_pence")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    StaffService[]
+
+  @@index([businessId])
+  @@map("services")
+}
+
+/// Which staff deliver which service.
+model StaffService {
+  staffId   String   @map("staff_id") @db.Uuid
+  serviceId String   @map("service_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+  @@index([serviceId])
+  @@map("staff_services")
+}
+
+/// A working window on an ISO weekday (1 = Monday), in local wall-clock minutes since midnight.
+/// Never UTC: 09:00 means 09:00 UK time in both GMT and BST. Check: 1 <= weekday <= 7, 0 <= start < end <= 1440.
+model WeeklyHours {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  staffId   String   @map("staff_id") @db.Uuid
+  weekday   Int
+  startMin  Int      @map("start_min")
+  endMin    Int      @map("end_min")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, weekday])
+  @@map("weekly_hours")
+}
+
+/// Replaces a date's weekly hours: one `closed` row (day off), or one or more windows (split hours).
+/// Check: closed rows have no times; open rows have 0 <= start < end <= 1440.
+model DateOverride {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  staffId   String   @map("staff_id") @db.Uuid
+  date      DateTime @db.Date
+  closed    Boolean  @default(false)
+  startMin  Int?     @map("start_min")
+  endMin    Int?     @map("end_min")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, date])
+  @@map("date_overrides")
 }
 
 /// Outbox: written in the same transaction as the change it describes; the worker turns it into jobs.
