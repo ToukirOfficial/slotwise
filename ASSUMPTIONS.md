@@ -49,3 +49,15 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A27.** `CLAUDE.md` and `PRD.md` are local working docs and are gitignored: neither is on the allowed-docs list for the public repo, and `CLAUDE.md` names other projects.
 - **A28.** The demo business's web address (slug) can't be changed, so the README's embed example keeps working.
 
+
+## Added while building (Phases 3–4)
+- **A29.** The slot grid is anchored at the start of each working window (a 09:10 window offers 09:10, 09:25, …). The horizon is by local date: "60 days ahead" means up to and including today + 60.
+- **A30.** Window edges that fall in a spring-forward gap move to the moment the clocks jump (Temporal's `compatible`). Candidate starts in the gap are skipped.
+- **A31.** Slugs `manage`, `api`, `admin`, `b`, `widget`, `public`, `docs` and `health` are reserved, because they would clash with routes.
+- **A32.** The public profile (`GET /public/{slug}`) lists only active services that at least one active staff member delivers, and only staff with at least one such service.
+- **A33.** A booking at a start that is valid but already taken gets 409 `SLOT_TAKEN`. A start that was never offered (off-grid, outside hours or notice) gets 422 `SLOT_UNAVAILABLE`.
+- **A34.** The manage-link token is `HMAC-SHA256(MANAGE_TOKEN_SECRET, bookingId)`: 256 bits, with only its SHA-256 hash stored. Because it's derived rather than random, the worker can rebuild the link for any email without the plain token ever being stored. The cost is that a link can't be rotated, only expired: when the appointment ends, or on cancel.
+- **A35.** Cancelling is itself idempotent (cancelling twice returns the booking unchanged), so it needs no Idempotency-Key. Bookings that have already started can't be cancelled or moved by anyone.
+- **A36.** Reschedule keeps the same staff member and uses the booking's own snapshot (length and buffers), not the service's current settings.
+- **A37.** Idempotency rows store only `{ bookingId }`. The response is rebuilt from the database, so no customer details sit outside `customers`.
+- **A38.** The calendar is an agenda-style day/week view (a list per day) rather than a time grid. It reads better on a phone.

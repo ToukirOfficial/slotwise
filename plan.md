@@ -56,7 +56,7 @@ Services CRUD, staff↔service links, weekly hours (replace the whole week, no o
 `packages/engine` `findSlots` (pure, Temporal, local grid, gap skipped, fold = first occurrence, linear busy scan). `GET /public/{slug}`, `GET /public/{slug}/availability`, authenticated `GET /availability`. Public routes 404 until the business is verified. CORS for `/public/*`. UI: an availability preview in the dashboard.
 *Tests:* 30+ engine cases incl. 29 Mar/25 Oct 2026 and 28 Mar/31 Oct 2027, plus a Vitest bench (< 200 ms, 1 staff, 30 days).
 
-**Phase 4 — Bookings** ☐
+**Phase 4 — Bookings** ✅ done
 Exclusion-constraint migration (`--create-only`, commented). Create (public + authenticated) with server-side re-validation, any-staff in savepoints, customer match by normalised email, a limit of 3 future bookings per email, and per-IP rate limit. Idempotency keys. Outbox events. Audit log. Cancel and reschedule (one UPDATE, `version++`). UI: day/week calendar, list + search, detail with cancel/reschedule, manual booking, out-of-hours flag, audit view.
 *Tests:* 100 concurrent → 1×201 + 99×409; reschedule into a taken slot; real `23P01` error shape; idempotency (replay, different body → 422, concurrent same key); tenant/staff matrix for bookings.
 

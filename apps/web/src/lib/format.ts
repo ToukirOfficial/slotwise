@@ -37,3 +37,22 @@ export const formatLocalDate = (date: string, opts: Intl.DateTimeFormatOptions =
 /** Today's date in the UK as YYYY-MM-DD. */
 export const ukToday = (): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: LONDON, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+/** Calendar maths on local dates (YYYY-MM-DD), done at UTC noon so no zone can shift the day. */
+export const addDays = (date: string, n: number): string => {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Monday of the week containing `date`. */
+export const mondayOf = (date: string): string => {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay(); // 0 = Sunday
+  return addDays(date, -((day + 6) % 7));
+};
+
+/** The UK local date of an instant. */
+export const ukDateOf = (iso: string): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    new Date(iso),
+  );
