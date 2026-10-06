@@ -8,6 +8,8 @@ import { EMAIL_QUEUE, MAINTENANCE_QUEUE, WEBHOOK_QUEUE } from './jobs/queues.js'
 import { ReminderScheduler } from './jobs/reminder.scheduler.js';
 import { BookingEventsHandler } from './outbox/booking-events.handler.js';
 import { WebhookFanout } from './outbox/webhook-fanout.js';
+import { WebhookDeliveryService } from './webhooks/delivery.service.js';
+import { WebhookSender } from './webhooks/webhook-sender.js';
 import { OutboxService } from './outbox/outbox.service.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { RedisService } from './redis/redis.service.js';
@@ -34,6 +36,8 @@ const shared = [
   BookingEventsHandler,
   ReminderScheduler,
   WebhookFanout,
+  WebhookDeliveryService,
+  WebhookSender,
 ];
 
 /** Everything both the API and the worker need: config, database, Redis, queues, outbox. */

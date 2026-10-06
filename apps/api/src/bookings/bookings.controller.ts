@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Headers, Inject, Param, Post, Query, Res } from '@nestjs/common';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import {
   type Booking,
   type BookingListQuery,
@@ -34,6 +34,7 @@ export const callerFor = (auth: AuthContext): Caller => ({
   enforceCutoff: false,
 });
 
+@ApiBearerAuth()
 @ApiTags('Bookings')
 @Controller('v1/bookings')
 export class BookingsController {

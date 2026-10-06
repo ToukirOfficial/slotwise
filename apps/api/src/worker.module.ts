@@ -6,9 +6,10 @@ import { BookingEmailSender } from './jobs/booking-email.sender.js';
 import { EmailProcessor } from './jobs/email.processor.js';
 import { MaintenanceProcessor } from './jobs/maintenance.processor.js';
 import { MailService } from './mail/mail.service.js';
+import { WebhookProcessor } from './webhooks/webhook.processor.js';
 
 export const WORKER_PROVIDERS = [MailService, AuthEmailSender, BookingEmailSender];
-export const PROCESSORS = [EmailProcessor, MaintenanceProcessor];
+export const PROCESSORS = [EmailProcessor, MaintenanceProcessor, WebhookProcessor];
 
 /** The background worker (src/worker.ts): emails, reminders, webhooks, outbox relay, clean-up. */
 @Module({})

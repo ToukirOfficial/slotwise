@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   createStaffBodySchema,
   idParamsSchema,
@@ -17,6 +17,7 @@ import { Allow, Auth, type AuthContext } from '../common/auth.js';
 import { Returns } from '../common/schema.js';
 import { StaffService } from './staff.service.js';
 
+@ApiBearerAuth()
 @ApiTags('Staff')
 @Controller('v1/staff')
 export class StaffController {

@@ -20,7 +20,11 @@ import { BusinessController } from './business/business.controller.js';
 import { BusinessService } from './business/business.service.js';
 import type { AppConfig } from './config.js';
 import { CoreModule } from './core.module.js';
+import { ApiKeysController } from './developer/api-keys.controller.js';
+import { ApiKeysService } from './developer/api-keys.service.js';
 import { HealthController } from './health/health.controller.js';
+import { WebhooksController } from './webhooks/webhooks.controller.js';
+import { WebhooksService } from './webhooks/webhooks.service.js';
 import { ScheduleController } from './schedule/schedule.controller.js';
 import { ScheduleService } from './schedule/schedule.service.js';
 import { ServicesController } from './services/services.controller.js';
@@ -70,13 +74,16 @@ class BookingsModule {}
 })
 class PublicModule {}
 
+@Module({ controllers: [ApiKeysController, WebhooksController], providers: [ApiKeysService, WebhooksService] })
+class DeveloperModule {}
+
 /** The HTTP API (src/main.ts). */
 @Module({})
 export class AppModule {
   static forConfig(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule, AvailabilityModule, AuditModule, BookingsModule, PublicModule],
+      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule, AvailabilityModule, AuditModule, BookingsModule, PublicModule, DeveloperModule],
       controllers: [HealthController],
       providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
     };
