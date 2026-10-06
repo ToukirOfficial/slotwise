@@ -1,0 +1,17 @@
+node_modules
+dist
+.next
+.turbo
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+tmp/
+coverage
+apps/api/src/generated
+apps/web/public/widget
+next-env.d.ts
+
+# Local working docs: kept out of the public repo (CLAUDE.md lists other projects by name).
+CLAUDE.md
+PRD.md
