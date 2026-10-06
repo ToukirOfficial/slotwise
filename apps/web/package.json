@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node scripts/copy-widget.mjs && next dev --port 8015",
     "build": "node scripts/copy-widget.mjs && next build",
-    "start": "next start --port 8015 --hostname 127.0.0.1",
+    "start": "next start --hostname 127.0.0.1 --port ${WEB_PORT:-8015}",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint ."
   },

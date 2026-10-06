@@ -15,8 +15,10 @@ const safeNext = (next: string | null) => (next && next.startsWith('/') && !next
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // /login?demo=1 fills in the public demo login (it's in the README too).
+  const demo = params.get('demo') === '1';
+  const [email, setEmail] = useState(demo ? 'demo@slotwise.example' : '');
+  const [password, setPassword] = useState(demo ? 'demo-physio-2026' : '');
   const { pending, formError, run } = useSubmit();
 
   const submit = async (e: React.FormEvent) => {

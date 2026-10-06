@@ -17,6 +17,10 @@ export default function Home() {
           <Link href="/login">Log in</Link>
         </Button>
       </div>
+      <p className="text-sm text-muted-foreground">
+        Or <Link className="underline underline-offset-4" href="/login?demo=1">try the demo clinic</Link>, or{' '}
+        <Link className="underline underline-offset-4" href="/b/demo-physio">book as a customer</Link>.
+      </p>
     </main>
   );
 }
