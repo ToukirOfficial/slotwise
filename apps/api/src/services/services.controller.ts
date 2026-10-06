@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   createServiceBodySchema,
   type CreateServiceBody,
@@ -16,6 +16,7 @@ import { Allow, Auth, type AuthContext } from '../common/auth.js';
 import { Returns } from '../common/schema.js';
 import { ServicesService } from './services.service.js';
 
+@ApiBearerAuth()
 @ApiTags('Services')
 @Controller('v1/services')
 export class ServicesController {

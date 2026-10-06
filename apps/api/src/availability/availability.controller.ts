@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { type Availability, type AvailabilityQuery, availabilityQuerySchema, availabilitySchema } from '@slotwise/shared';
 import { Allow, Auth, type AuthContext, ownStaffFilter } from '../common/auth.js';
 import { notFound } from '../common/errors.js';
@@ -7,6 +7,7 @@ import { Returns } from '../common/schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AvailabilityService } from './availability.service.js';
 
+@ApiBearerAuth()
 @ApiTags('Availability')
 @Controller('v1/availability')
 export class AvailabilityController {

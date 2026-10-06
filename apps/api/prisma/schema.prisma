@@ -68,6 +68,8 @@ model Business {
   bookings     Booking[]
   outboxEvents OutboxEvent[]
   auditLog     AuditLog[]
+  apiKeys      ApiKey[]
+  webhooks     WebhookEndpoint[]
 
   @@map("businesses")
 }
@@ -356,4 +358,65 @@ model AuditLog {
   @@index([businessId, entity, entityId])
   @@index([businessId, at])
   @@map("audit_log")
+}
+
+/// Developer API key: `sw_live_<prefix>_<secret>`. Stored as the public prefix + SHA-256 of the secret.
+model ApiKey {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  prefix     String    @unique
+  keyHash    String    @map("key_hash")
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("api_keys")
+}
+
+/// Where booking events are POSTed. The signing secret is AES-256-GCM encrypted (it can't be hashed: the
+/// server needs it to sign every delivery).
+model WebhookEndpoint {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  businessId      String   @map("business_id") @db.Uuid
+  url             String
+  secretEncrypted String   @map("secret_encrypted")
+  events          String[]
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  business   Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([businessId])
+  @@map("webhook_endpoints")
+}
+
+/// One row per delivery attempt (the owner's delivery log). payload_json is cleared after 30 days.
+model WebhookDelivery {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  endpointId      String    @map("endpoint_id") @db.Uuid
+  outboxEventId   String?   @map("outbox_event_id") @db.Uuid
+  event           String
+  payloadJson     Json?     @map("payload_json")
+  attempt         Int
+  statusCode      Int?      @map("status_code")
+  durationMs      Int?      @map("duration_ms")
+  error           String?
+  responseExcerpt String?   @map("response_excerpt")
+  nextRetryAt     DateTime? @map("next_retry_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId, createdAt])
+  @@index([outboxEventId])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
 }

@@ -2,6 +2,7 @@ import { Temporal } from 'temporal-polyfill';
 import { as, nextIp, registerOwner, type Session, type TestApp, verifyBusiness } from './helpers.js';
 
 export interface BookableBusiness extends Session {
+  email: string;
   slug: string;
   serviceId: string;
 }

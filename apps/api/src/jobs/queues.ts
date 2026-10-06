@@ -1,3 +1,5 @@
+import type { WebhookPayload } from '@slotwise/shared';
+
 /** Queue names (BullMQ prefix is QUEUE_PREFIX, i.e. `slotwise`). */
 export const EMAIL_QUEUE = 'email';
 export const WEBHOOK_QUEUE = 'webhook';
@@ -15,7 +17,7 @@ export interface WebhookJob {
   /** The outbox event the delivery belongs to (null for test events). */
   outboxEventId: string | null;
   event: string;
-  payload: Record<string, unknown>;
+  payload: WebhookPayload;
 }
 
 export type MaintenanceJobName = 'outbox-relay' | 'reminder-reconcile' | 'cleanup' | 'demo-reseed';

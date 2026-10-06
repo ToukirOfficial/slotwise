@@ -64,7 +64,16 @@ export class IdempotencyService {
     const existing = await this.prisma.idempotencyKey.findUnique({ where });
     if (existing) return this.replay<T>(existing, requestHash);
 
-    const prepared = await prepare();
+    let prepared: P;
+    try {
+      prepared = await prepare();
+    } catch (err) {
+      // A same-key request may have committed while we validated (e.g. its booking now makes "our" slot look
+      // taken). Its key row commits with the booking, so if it's there now, this is a replay, not an error.
+      const row = await this.prisma.idempotencyKey.findUnique({ where });
+      if (row) return this.replay<T>(row, requestHash);
+      throw err;
+    }
     try {
       return await this.prisma.$transaction(
         async (tx) => {
