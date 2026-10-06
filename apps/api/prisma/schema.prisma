@@ -1,0 +1,145 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Conventions: UUIDv7 ids, createdAt/updatedAt on every table, instants as timestamptz (UTC),
+// money as integer pence, snake_case table names. Every tenant-owned row carries businessId.
+
+enum Role {
+  owner
+  staff
+}
+
+enum AuthTokenKind {
+  verify_email
+  reset_password
+  staff_invite
+}
+
+/// A tenant. Public endpoints return 404 until the owner's email is verified (verifiedAt).
+model Business {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  name               String
+  slug               String    @unique
+  timezone           String    @default("Europe/London")
+  brandColor         String    @default("#2563eb") @map("brand_color")
+  contactEmail       String?   @map("contact_email")
+  contactPhone       String?   @map("contact_phone")
+  minNoticeMin       Int       @default(120) @map("min_notice_min")
+  maxDaysAhead       Int       @default(60) @map("max_days_ahead")
+  slotStepMin        Int       @default(15) @map("slot_step_min")
+  cancelCutoffHours  Int       @default(24) @map("cancel_cutoff_hours")
+  retentionMonths    Int       @default(24) @map("retention_months")
+  ownerNotifications Boolean   @default(true) @map("owner_notifications")
+  isDemo             Boolean   @default(false) @map("is_demo")
+  verifiedAt         DateTime? @map("verified_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  users        User[]
+  staff        Staff[]
+  outboxEvents OutboxEvent[]
+
+  @@map("businesses")
+}
+
+/// A login. One email = one login = one business (ASSUMPTIONS A1), so email is unique globally.
+/// passwordHash is null until an invited staff member accepts the invite.
+model User {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  businessId      String    @map("business_id") @db.Uuid
+  email           String    @unique
+  passwordHash    String?   @map("password_hash")
+  role            Role
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff      Staff?
+  sessions   Session[]
+  authTokens AuthToken[]
+
+  @@index([businessId])
+  @@map("users")
+}
+
+/// One refresh token. Rotation creates a new row in the same family and points the old one at it;
+/// presenting a token that was already replaced or revoked revokes the whole family.
+model Session {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  familyId         String    @map("family_id") @db.Uuid
+  refreshTokenHash String    @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz
+  replacedById     String?   @map("replaced_by_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Single-use email tokens (verify, reset, invite). Only the SHA-256 hash is stored.
+model AuthToken {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  kind      AuthTokenKind
+  tokenHash String        @unique @map("token_hash")
+  expiresAt DateTime      @map("expires_at") @db.Timestamptz
+  usedAt    DateTime?     @map("used_at") @db.Timestamptz
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_tokens")
+}
+
+/// Someone who delivers appointments. May or may not have a login (userId).
+model Staff {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
+  userId      String?  @unique @map("user_id") @db.Uuid
+  displayName String   @map("display_name")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@map("staff")
+}
+
+/// Outbox: written in the same transaction as the change it describes; the worker turns it into jobs.
+model OutboxEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  type        String
+  payloadJson Json      @map("payload_json")
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([createdAt], map: "outbox_events_unprocessed_idx", where: raw("processed_at IS NULL"))
+  @@map("outbox_events")
+}
