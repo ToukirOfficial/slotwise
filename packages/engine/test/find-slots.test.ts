@@ -1,6 +1,13 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
-import { type FindSlotsInput, findSlots, isOfferedStart, localToEpochMs, type SlotDay } from '../src/index.js';
+import {
+  type FindSlotsInput,
+  findSlots,
+  isOfferedStart,
+  isWithinWorkingHours,
+  localToEpochMs,
+  type SlotDay,
+} from '../src/index.js';
 
 const ZONE = 'Europe/London';
 const at = (iso: string) => Temporal.Instant.from(iso);
@@ -332,5 +339,33 @@ describe('helpers', () => {
     expect(isOfferedStart(base, at('2026-12-01T10:07:00Z'))).toBe(false);
     expect(isOfferedStart({ ...base, busy: [busy('2026-12-01T10:00:00Z', '2026-12-01T11:00:00Z')] }, at('2026-12-01T10:00:00Z'))).toBe(false);
     expect(isOfferedStart(base, at('2026-12-01T18:00:00Z'))).toBe(false);
+  });
+});
+
+describe('isWithinWorkingHours', () => {
+  const args = (start: string, end: string, over: Partial<Parameters<typeof isWithinWorkingHours>[0]> = {}) => ({
+    zone: ZONE,
+    weeklyHours: everyDay(H(9), H(17)),
+    overrides: [],
+    start: at(start),
+    end: at(end),
+    ...over,
+  });
+
+  it('is true inside a window and false when hours no longer cover the booking', () => {
+    expect(isWithinWorkingHours(args('2026-12-01T09:00:00Z', '2026-12-01T10:00:00Z'))).toBe(true);
+    expect(isWithinWorkingHours(args('2026-12-01T16:30:00Z', '2026-12-01T17:30:00Z'))).toBe(false);
+    expect(
+      isWithinWorkingHours(
+        args('2026-12-01T09:00:00Z', '2026-12-01T10:00:00Z', {
+          overrides: [{ date: '2026-12-01', closed: true, startMin: null, endMin: null }],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('uses local time in summer (09:00 BST = 08:00 UTC)', () => {
+    expect(isWithinWorkingHours(args('2026-06-02T08:00:00Z', '2026-06-02T09:00:00Z'))).toBe(true);
+    expect(isWithinWorkingHours(args('2026-06-02T07:30:00Z', '2026-06-02T08:30:00Z'))).toBe(false);
   });
 });

@@ -108,7 +108,10 @@ function mergeBusy(busy: BusyInterval[]): { start: number; end: number }[] {
 }
 
 /** Working windows (local minutes) for one date: the override if there is one, otherwise the weekly hours. */
-function windowsFor(date: Temporal.PlainDate, input: FindSlotsInput): { startMin: number; endMin: number }[] {
+function windowsFor(
+  date: Temporal.PlainDate,
+  input: Pick<FindSlotsInput, 'weeklyHours' | 'overrides'>,
+): { startMin: number; endMin: number }[] {
   const iso = date.toString();
   const overrides = input.overrides.filter((o) => o.date === iso);
   const windows =
@@ -179,4 +182,24 @@ export function isOfferedStart(input: Omit<FindSlotsInput, 'fromDate' | 'toDate'
   const date = startsAt.toZonedDateTimeISO(input.zone).toPlainDate().toString();
   const iso = new Date(startsAt.epochMilliseconds).toISOString();
   return findSlots({ ...input, fromDate: date, toDate: date }).some((d) => d.slots.some((s) => s.startsAt === iso));
+}
+
+/**
+ * True if [start, end) lies inside one of the staff member's working windows on the start's local date.
+ * Used to flag confirmed bookings that no longer fit after hours were changed (bookings are never moved).
+ */
+export function isWithinWorkingHours(args: {
+  zone: string;
+  weeklyHours: WeeklyWindow[];
+  overrides: DateOverride[];
+  start: Temporal.Instant;
+  end: Temporal.Instant;
+}): boolean {
+  const date = args.start.toZonedDateTimeISO(args.zone).toPlainDate();
+  const windows = windowsFor(date, { weeklyHours: args.weeklyHours, overrides: args.overrides });
+  const start = args.start.epochMilliseconds;
+  const end = args.end.epochMilliseconds;
+  return windows.some(
+    (w) => start >= windowEdgeMs(date, w.startMin, args.zone) && end <= windowEdgeMs(date, w.endMin, args.zone),
+  );
 }
