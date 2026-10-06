@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { PageHeader } from '@/components/app-shell';
+import { AvailabilityPreview } from '@/components/availability-preview';
 import { useMe } from '@/components/me';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VerifyBanner } from '@/components/verify-banner';
@@ -36,6 +37,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+      <div className="mt-6">
+        <AvailabilityPreview />
+      </div>
     </>
   );
 }

@@ -52,7 +52,7 @@ Monorepo (pnpm, Turborepo, TypeScript strict, ESLint, Prettier), `pnpm setup`, C
 Services CRUD, staff↔service links, weekly hours (replace the whole week, no overlapping windows), date overrides. UI: services, staff services, hours editor with split shifts, overrides.
 *Tests:* tenant/permission matrix for services, hours and overrides (staff only own).
 
-**Phase 3 — Slot engine + availability** ☐
+**Phase 3 — Slot engine + availability** ✅ done
 `packages/engine` `findSlots` (pure, Temporal, local grid, gap skipped, fold = first occurrence, linear busy scan). `GET /public/{slug}`, `GET /public/{slug}/availability`, authenticated `GET /availability`. Public routes 404 until the business is verified. CORS for `/public/*`. UI: an availability preview in the dashboard.
 *Tests:* 30+ engine cases incl. 29 Mar/25 Oct 2026 and 28 Mar/31 Oct 2027, plus a Vitest bench (< 200 ms, 1 staff, 30 days).
 
