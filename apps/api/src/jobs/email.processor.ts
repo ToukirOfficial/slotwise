@@ -15,11 +15,11 @@ export class EmailProcessor extends WorkerHost {
     super();
   }
 
-  process(job: Job<EmailJob>): Promise<void> {
+  process(job: Job<EmailJob>): Promise<unknown> {
     return requestContext.run({ requestId: job.id ?? 'job' }, () => this.run(job.data));
   }
 
-  run(data: EmailJob): Promise<void> {
+  run(data: EmailJob): Promise<unknown> {
     return data.type === 'auth' ? this.auth.send(data.kind, data.userId) : this.booking.send(data);
   }
 }
