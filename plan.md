@@ -72,6 +72,6 @@ Full outbox relay (`SKIP LOCKED`), job-id helper. Confirmation (`.ics` REQUEST),
 API keys (shown once, prefix + SHA-256, revoke, `last_used_at`, scope limits, 60/min per key with `Retry-After`). Webhook endpoints (AES-GCM secret shown once), signed delivery, SSRF-safe sender, 8 retries with backoff, delivery log, resend, and a test event. Swagger docs complete with examples. UI: API keys and webhooks tabs.
 *Tests:* API-key scope + tenant matrix; per-key rate limit; signature verification; private/loopback/metadata IPs rejected after DNS resolution; retries logged.
 
-**Phase 8 — Data controls, demo, finish** ☐
+**Phase 8 — Data controls, demo, finish** ✅ done
 Customer erase + customers page. Daily clean-up (idempotency 24 h, outbox/webhook payloads 30 d, expired tokens, retention erasure). Demo seed ("Demo Physio Clinic") with `is_demo` limits and a nightly reseed. Decision notes in `docs/decisions/`. README (PRD §5 headings, quick-start, `curl` example, test counts, CI badge), MIT LICENSE, `deploy.sh` (nvm first, works on Mac and WSL), `pnpm audit`, PR and merge.
 *Tests:* demo restrictions; erase permission (owner only, tenant-scoped).
