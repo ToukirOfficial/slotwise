@@ -1,0 +1,422 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Conventions: UUIDv7 ids, createdAt/updatedAt on every table, instants as timestamptz (UTC),
+// money as integer pence, snake_case table names. Every tenant-owned row carries businessId.
+
+enum Role {
+  owner
+  staff
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+}
+
+enum BookingSource {
+  widget
+  api
+  dashboard
+}
+
+enum ActorType {
+  user
+  customer
+  api_key
+  system
+}
+
+enum AuthTokenKind {
+  verify_email
+  reset_password
+  staff_invite
+}
+
+/// A tenant. Public endpoints return 404 until the owner's email is verified (verifiedAt).
+model Business {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  name               String
+  slug               String    @unique
+  timezone           String    @default("Europe/London")
+  brandColor         String    @default("#2563eb") @map("brand_color")
+  contactEmail       String?   @map("contact_email")
+  contactPhone       String?   @map("contact_phone")
+  minNoticeMin       Int       @default(120) @map("min_notice_min")
+  maxDaysAhead       Int       @default(60) @map("max_days_ahead")
+  slotStepMin        Int       @default(15) @map("slot_step_min")
+  cancelCutoffHours  Int       @default(24) @map("cancel_cutoff_hours")
+  retentionMonths    Int       @default(24) @map("retention_months")
+  ownerNotifications Boolean   @default(true) @map("owner_notifications")
+  isDemo             Boolean   @default(false) @map("is_demo")
+  verifiedAt         DateTime? @map("verified_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  users        User[]
+  staff        Staff[]
+  services     Service[]
+  customers    Customer[]
+  bookings     Booking[]
+  outboxEvents OutboxEvent[]
+  auditLog     AuditLog[]
+  apiKeys      ApiKey[]
+  webhooks     WebhookEndpoint[]
+
+  @@map("businesses")
+}
+
+/// A login. One email = one login = one business (ASSUMPTIONS A1), so email is unique globally.
+/// passwordHash is null until an invited staff member accepts the invite.
+model User {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  businessId      String    @map("business_id") @db.Uuid
+  email           String    @unique
+  passwordHash    String?   @map("password_hash")
+  role            Role
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff      Staff?
+  sessions   Session[]
+  authTokens AuthToken[]
+
+  @@index([businessId])
+  @@map("users")
+}
+
+/// One refresh token. Rotation creates a new row in the same family and points the old one at it;
+/// presenting a token that was already replaced or revoked revokes the whole family.
+model Session {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  familyId         String    @map("family_id") @db.Uuid
+  refreshTokenHash String    @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz
+  replacedById     String?   @map("replaced_by_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Single-use email tokens (verify, reset, invite). Only the SHA-256 hash is stored.
+model AuthToken {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  kind      AuthTokenKind
+  tokenHash String        @unique @map("token_hash")
+  expiresAt DateTime      @map("expires_at") @db.Timestamptz
+  usedAt    DateTime?     @map("used_at") @db.Timestamptz
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_tokens")
+}
+
+/// Someone who delivers appointments. May or may not have a login (userId).
+model Staff {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
+  userId      String?  @unique @map("user_id") @db.Uuid
+  displayName String   @map("display_name")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services      StaffService[]
+  weeklyHours   WeeklyHours[]
+  dateOverrides DateOverride[]
+  bookings      Booking[]
+
+  @@index([businessId])
+  @@map("staff")
+}
+
+/// Something a customer can book. Bookings keep their own snapshot, so editing a service never changes them.
+/// Checks (hand-written in the migration): duration 1–1440, buffers 0–240, price >= 0.
+model Service {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  businessId      String   @map("business_id") @db.Uuid
+  name            String
+  durationMin     Int      @map("duration_min")
+  bufferBeforeMin Int      @default(0) @map("buffer_before_min")
+  bufferAfterMin  Int      @default(0) @map("buffer_after_min")
+  pricePence      Int      @default(0) @map("price_pence")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    StaffService[]
+  bookings Booking[]
+
+  @@index([businessId])
+  @@map("services")
+}
+
+/// Which staff deliver which service.
+model StaffService {
+  staffId   String   @map("staff_id") @db.Uuid
+  serviceId String   @map("service_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+  @@index([serviceId])
+  @@map("staff_services")
+}
+
+/// A working window on an ISO weekday (1 = Monday), in local wall-clock minutes since midnight.
+/// Never UTC: 09:00 means 09:00 UK time in both GMT and BST. Check: 1 <= weekday <= 7, 0 <= start < end <= 1440.
+model WeeklyHours {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  staffId   String   @map("staff_id") @db.Uuid
+  weekday   Int
+  startMin  Int      @map("start_min")
+  endMin    Int      @map("end_min")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, weekday])
+  @@map("weekly_hours")
+}
+
+/// Replaces a date's weekly hours: one `closed` row (day off), or one or more windows (split hours).
+/// Check: closed rows have no times; open rows have 0 <= start < end <= 1440.
+model DateOverride {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  staffId   String   @map("staff_id") @db.Uuid
+  date      DateTime @db.Date
+  closed    Boolean  @default(false)
+  startMin  Int?     @map("start_min")
+  endMin    Int?     @map("end_min")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, date])
+  @@map("date_overrides")
+}
+
+/// Outbox: written in the same transaction as the change it describes; the worker turns it into jobs.
+model OutboxEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  type        String
+  payloadJson Json      @map("payload_json")
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([createdAt], map: "outbox_events_unprocessed_idx", where: raw("processed_at IS NULL"))
+  @@map("outbox_events")
+}
+
+/// The only table with customer personal data. Erasure blanks name/email/phone and sets erasedAt;
+/// bookings keep just their times and service. Matched by email within a business (case-insensitive).
+model Customer {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  businessId      String    @map("business_id") @db.Uuid
+  name            String?
+  email           String?
+  emailNormalized String?   @map("email_normalized")
+  phone           String?
+  erasedAt        DateTime? @map("erased_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@unique([businessId, emailNormalized])
+  @@map("customers")
+}
+
+/// An appointment. Times are instants (UTC). blocked_start/end = appointment ± the service's buffers, and the
+/// hand-written exclusion constraint `bookings_no_overlap` (see the phase-4 migration) makes overlapping
+/// confirmed bookings for one staff member impossible. Service fields are a snapshot taken at booking time.
+model Booking {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  businessId           String        @map("business_id") @db.Uuid
+  staffId              String        @map("staff_id") @db.Uuid
+  serviceId            String        @map("service_id") @db.Uuid
+  customerId           String        @map("customer_id") @db.Uuid
+  startsAt             DateTime      @map("starts_at") @db.Timestamptz
+  endsAt               DateTime      @map("ends_at") @db.Timestamptz
+  blockedStart         DateTime      @map("blocked_start") @db.Timestamptz
+  blockedEnd           DateTime      @map("blocked_end") @db.Timestamptz
+  status               BookingStatus @default(confirmed)
+  /// Bumped on every change; emails, the .ics SEQUENCE and reminder jobs carry it.
+  version              Int           @default(1)
+  serviceName          String        @map("service_name")
+  durationMin          Int           @map("duration_min")
+  bufferBeforeMin      Int           @map("buffer_before_min")
+  bufferAfterMin       Int           @map("buffer_after_min")
+  pricePence           Int           @map("price_pence")
+  source               BookingSource
+  /// SHA-256 of the manage-link token (the token itself is never stored).
+  manageTokenHash      String        @unique @map("manage_token_hash")
+  manageTokenExpiresAt DateTime      @map("manage_token_expires_at") @db.Timestamptz
+  cancelledAt          DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancelReason         String?       @map("cancel_reason")
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    Staff      @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  service  Service    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  emails   EmailLog[]
+
+  @@index([businessId, startsAt])
+  @@index([staffId, startsAt])
+  @@index([serviceId])
+  @@index([customerId])
+  @@map("bookings")
+}
+
+/// Idempotency-Key records for booking create/reschedule. Written inside the booking transaction, kept 24 h.
+model IdempotencyKey {
+  businessId     String   @map("business_id") @db.Uuid
+  key            String
+  requestHash    String   @map("request_hash")
+  responseStatus Int      @map("response_status")
+  responseJson   Json     @map("response_json")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@id([businessId, key])
+  @@index([createdAt])
+  @@map("idempotency_keys")
+}
+
+/// Send log: one row per email actually sent. Checked before sending, so retries don't send twice.
+model EmailLog {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  bookingId String   @map("booking_id") @db.Uuid
+  kind      String
+  version   Int
+  sentAt    DateTime @default(now()) @map("sent_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, kind, version])
+  @@map("email_log")
+}
+
+/// Append-only. before/after hold ids, status and times only — never customer personal data.
+model AuditLog {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  actorType  ActorType @map("actor_type")
+  actorId    String?   @map("actor_id")
+  action     String
+  entity     String
+  entityId   String    @map("entity_id")
+  beforeJson Json?     @map("before_json")
+  afterJson  Json?     @map("after_json")
+  at         DateTime  @default(now()) @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, entity, entityId])
+  @@index([businessId, at])
+  @@map("audit_log")
+}
+
+/// Developer API key: `sw_live_<prefix>_<secret>`. Stored as the public prefix + SHA-256 of the secret.
+model ApiKey {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  prefix     String    @unique
+  keyHash    String    @map("key_hash")
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("api_keys")
+}
+
+/// Where booking events are POSTed. The signing secret is AES-256-GCM encrypted (it can't be hashed: the
+/// server needs it to sign every delivery).
+model WebhookEndpoint {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  businessId      String   @map("business_id") @db.Uuid
+  url             String
+  secretEncrypted String   @map("secret_encrypted")
+  events          String[]
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  business   Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([businessId])
+  @@map("webhook_endpoints")
+}
+
+/// One row per delivery attempt (the owner's delivery log). payload_json is cleared after 30 days.
+model WebhookDelivery {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  endpointId      String    @map("endpoint_id") @db.Uuid
+  outboxEventId   String?   @map("outbox_event_id") @db.Uuid
+  event           String
+  payloadJson     Json?     @map("payload_json")
+  attempt         Int
+  statusCode      Int?      @map("status_code")
+  durationMs      Int?      @map("duration_ms")
+  error           String?
+  responseExcerpt String?   @map("response_excerpt")
+  nextRetryAt     DateTime? @map("next_retry_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId, createdAt])
+  @@index([outboxEventId])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}

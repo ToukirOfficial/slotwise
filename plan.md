@@ -48,30 +48,30 @@ Each phase works end to end (API + UI). Each one ends with CLAUDE.md's quick pas
 Monorepo (pnpm, Turborepo, TypeScript strict, ESLint, Prettier), `pnpm setup`, CI workflow, Prisma 7 config, JSON logger with request id, error-code filter, Zod Standard Schema pipe + Swagger wiring, and the health endpoint. Tables: businesses, users, sessions, auth_tokens, staff, outbox_events. All `/auth/*` endpoints plus `/auth/me` and `GET/PATCH /business`. Global guard, roles, tenant context, Origin check and throttling. Staff CRUD + invite. Minimal outbox → worker → mail-to-file path for verify/reset/invite emails. UI: auth pages, dashboard shell, business settings, staff list + invite.
 *Tests:* login; refresh rotation; reuse revokes the family; login rate limit; tenant isolation and staff-role limits on business/staff.
 
-**Phase 2 — Services, staff hours, overrides** ☐
+**Phase 2 — Services, staff hours, overrides** ✅ done
 Services CRUD, staff↔service links, weekly hours (replace the whole week, no overlapping windows), date overrides. UI: services, staff services, hours editor with split shifts, overrides.
 *Tests:* tenant/permission matrix for services, hours and overrides (staff only own).
 
-**Phase 3 — Slot engine + availability** ☐
+**Phase 3 — Slot engine + availability** ✅ done
 `packages/engine` `findSlots` (pure, Temporal, local grid, gap skipped, fold = first occurrence, linear busy scan). `GET /public/{slug}`, `GET /public/{slug}/availability`, authenticated `GET /availability`. Public routes 404 until the business is verified. CORS for `/public/*`. UI: an availability preview in the dashboard.
 *Tests:* 30+ engine cases incl. 29 Mar/25 Oct 2026 and 28 Mar/31 Oct 2027, plus a Vitest bench (< 200 ms, 1 staff, 30 days).
 
-**Phase 4 — Bookings** ☐
+**Phase 4 — Bookings** ✅ done
 Exclusion-constraint migration (`--create-only`, commented). Create (public + authenticated) with server-side re-validation, any-staff in savepoints, customer match by normalised email, a limit of 3 future bookings per email, and per-IP rate limit. Idempotency keys. Outbox events. Audit log. Cancel and reschedule (one UPDATE, `version++`). UI: day/week calendar, list + search, detail with cancel/reschedule, manual booking, out-of-hours flag, audit view.
 *Tests:* 100 concurrent → 1×201 + 99×409; reschedule into a taken slot; real `23P01` error shape; idempotency (replay, different body → 422, concurrent same key); tenant/staff matrix for bookings.
 
-**Phase 5 — Emails, reminders, manage link** ☐
+**Phase 5 — Emails, reminders, manage link** ✅ done
 Full outbox relay (`SKIP LOCKED`), job-id helper. Confirmation (`.ics` REQUEST), cancellation (`.ics` CANCEL), reschedule, and owner notification emails, all through an `email_log` check. Reminder delayed job (skipped if the booking is < 24 h away), moved or removed on change. Stale-version check. Hourly reconcile. Manage-token endpoints and the `/manage/[token]` page with cut-off handling.
 *Tests:* crash between commit and enqueue → relay delivers; duplicate enqueue → one job; a stale reminder sends nothing; reconcile restores a deleted reminder; real BullMQ accepts the job ids; email_log dedupe.
 
-**Phase 6 — Embeddable widget** ☐
+**Phase 6 — Embeddable widget** ✅ done
 `packages/widget` Web Component (Shadow DOM, esbuild IIFE, < 30 KB gz) with the `business`/`service`/`color` attributes and automatic text contrast. Four steps, "just taken" handling with `aria-live`, WCAG 2.2 AA. Served at `/widget/v1.js`, powers `/b/[slug]`. Settings tab with the embed code and a copy button.
 *Tests:* none (no rule-11 items).
 
-**Phase 7 — Developer API + webhooks** ☐
+**Phase 7 — Developer API + webhooks** ✅ done
 API keys (shown once, prefix + SHA-256, revoke, `last_used_at`, scope limits, 60/min per key with `Retry-After`). Webhook endpoints (AES-GCM secret shown once), signed delivery, SSRF-safe sender, 8 retries with backoff, delivery log, resend, and a test event. Swagger docs complete with examples. UI: API keys and webhooks tabs.
 *Tests:* API-key scope + tenant matrix; per-key rate limit; signature verification; private/loopback/metadata IPs rejected after DNS resolution; retries logged.
 
-**Phase 8 — Data controls, demo, finish** ☐
+**Phase 8 — Data controls, demo, finish** ✅ done
 Customer erase + customers page. Daily clean-up (idempotency 24 h, outbox/webhook payloads 30 d, expired tokens, retention erasure). Demo seed ("Demo Physio Clinic") with `is_demo` limits and a nightly reseed. Decision notes in `docs/decisions/`. README (PRD §5 headings, quick-start, `curl` example, test counts, CI badge), MIT LICENSE, `deploy.sh` (nvm first, works on Mac and WSL), `pnpm audit`, PR and merge.
 *Tests:* demo restrictions; erase permission (owner only, tenant-scoped).
