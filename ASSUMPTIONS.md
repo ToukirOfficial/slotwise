@@ -22,7 +22,7 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A8.** Staff can create, cancel and reschedule bookings only in their own diary. They can't edit services or business settings.
 - **A9.** `Idempotency-Key` is required on **every** reschedule endpoint (dashboard, API and manage link), not only the manage-link one listed in PRD §7. CLAUDE.md requires it for reschedule in general.
 - **A10.** For "any staff", only active staff linked to the service are tried. "Fewest bookings that day" counts confirmed bookings on that local date.
-- **A11.** The manage token stays the same on reschedule, and its expiry moves to the new end time. Cancelling expires it right away.
+- **A11.** The manage token stays the same on reschedule, and its expiry moves to the new end time. After a cancel the link still opens (showing "cancelled") until the original end time, but every change is refused.
 - **A12.** The limit of 3 future bookings per email does not apply to bookings made by the owner or staff in the dashboard (walk-ins, regulars).
 - **A13.** The week view starts on Monday. All UI times show in `Europe/London` with a "UK time" label.
 - **A14.** Booking search matches customer name, email or phone (case-insensitive, at least 2 characters). Cursor = `(starts_at, id)`.
@@ -61,3 +61,6 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A36.** Reschedule keeps the same staff member and uses the booking's own snapshot (length and buffers), not the service's current settings.
 - **A37.** Idempotency rows store only `{ bookingId }`. The response is rebuilt from the database, so no customer details sit outside `customers`.
 - **A38.** The calendar is an agenda-style day/week view (a list per day) rather than a time grid. It reads better on a phone.
+- **A39.** Owner notices go to every verified owner login of the business, as one job per booking version.
+- **A40.** If Redis lost a reminder and the 24-hour mark has already passed (but the appointment hasn't started, and it was booked more than 24 h ahead), the hourly reconcile sends the reminder straight away rather than skipping it.
+- **A41.** A confirmation or reschedule email whose booking has changed since the job was queued is skipped, because a newer email for the new version is already on its way.

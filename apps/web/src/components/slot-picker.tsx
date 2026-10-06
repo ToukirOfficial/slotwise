@@ -17,8 +17,9 @@ export function SlotPicker({
   onPick,
   source = '/availability',
 }: {
-  serviceId: string;
-  staffId: string;
+  /** Omitted for endpoints that already know them (the manage link). */
+  serviceId?: string;
+  staffId?: string;
   from: string;
   to: string;
   selected?: string;
@@ -26,10 +27,10 @@ export function SlotPicker({
   /** Override the endpoint (e.g. the manage-link reschedule endpoint). Query string is appended. */
   source?: string;
 }) {
-  const sep = source.includes('?') ? '&' : '?';
-  const { data, error, loading, reload } = useApi<Availability>(
-    `${source}${sep}serviceId=${serviceId}&staffId=${staffId}&from=${from}&to=${to}`,
-  );
+  const qs = new URLSearchParams({ from, to });
+  if (serviceId) qs.set('serviceId', serviceId);
+  if (staffId) qs.set('staffId', staffId);
+  const { data, error, loading, reload } = useApi<Availability>(`${source}?${qs.toString()}`);
   if (error) return <ErrorState error={error} onRetry={reload} />;
   if (loading || !data) return <LoadingState label="Finding free times…" />;
   const days = data.days.filter((d) => d.slots.length > 0);

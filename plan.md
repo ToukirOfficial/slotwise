@@ -60,7 +60,7 @@ Services CRUD, staff↔service links, weekly hours (replace the whole week, no o
 Exclusion-constraint migration (`--create-only`, commented). Create (public + authenticated) with server-side re-validation, any-staff in savepoints, customer match by normalised email, a limit of 3 future bookings per email, and per-IP rate limit. Idempotency keys. Outbox events. Audit log. Cancel and reschedule (one UPDATE, `version++`). UI: day/week calendar, list + search, detail with cancel/reschedule, manual booking, out-of-hours flag, audit view.
 *Tests:* 100 concurrent → 1×201 + 99×409; reschedule into a taken slot; real `23P01` error shape; idempotency (replay, different body → 422, concurrent same key); tenant/staff matrix for bookings.
 
-**Phase 5 — Emails, reminders, manage link** ☐
+**Phase 5 — Emails, reminders, manage link** ✅ done
 Full outbox relay (`SKIP LOCKED`), job-id helper. Confirmation (`.ics` REQUEST), cancellation (`.ics` CANCEL), reschedule, and owner notification emails, all through an `email_log` check. Reminder delayed job (skipped if the booking is < 24 h away), moved or removed on change. Stale-version check. Hourly reconcile. Manage-token endpoints and the `/manage/[token]` page with cut-off handling.
 *Tests:* crash between commit and enqueue → relay delivers; duplicate enqueue → one job; a stale reminder sends nothing; reconcile restores a deleted reminder; real BullMQ accepts the job ids; email_log dedupe.
 
