@@ -2,7 +2,6 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ApiKeyAuthenticator } from './auth/api-key.authenticator.js';
 import { AuditController } from './audit/audit.controller.js';
-import { AuditService } from './audit/audit.service.js';
 import { AvailabilityController } from './availability/availability.controller.js';
 import { BookingsController } from './bookings/bookings.controller.js';
 import { BookingsService } from './bookings/bookings.service.js';
@@ -17,6 +16,8 @@ import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
 import { SessionsService } from './auth/sessions.service.js';
 import { BusinessController } from './business/business.controller.js';
+import { CustomersController } from './customers/customers.controller.js';
+import { CustomersService } from './customers/customers.service.js';
 import { BusinessService } from './business/business.service.js';
 import type { AppConfig } from './config.js';
 import { CoreModule } from './core.module.js';
@@ -54,8 +55,11 @@ class ScheduleModule {}
 @Module({ controllers: [AvailabilityController], providers: [AvailabilityService], exports: [AvailabilityService] })
 class AvailabilityModule {}
 
-@Module({ controllers: [AuditController], providers: [AuditService], exports: [AuditService] })
+@Module({ controllers: [AuditController] })
 class AuditModule {}
+
+@Module({ controllers: [CustomersController], providers: [CustomersService] })
+class CustomersModule {}
 
 @Module({
   imports: [AvailabilityModule, AuditModule],
@@ -83,7 +87,7 @@ export class AppModule {
   static forConfig(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule, AvailabilityModule, AuditModule, BookingsModule, PublicModule, DeveloperModule],
+      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule, AvailabilityModule, AuditModule, BookingsModule, PublicModule, DeveloperModule, CustomersModule],
       controllers: [HealthController],
       providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
     };

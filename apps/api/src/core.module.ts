@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { type DynamicModule, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { AuditService } from './audit/audit.service.js';
 import { PublicCache } from './business/public-cache.js';
 import { RateLimiter } from './common/rate-limit.js';
 import { APP_CONFIG, type AppConfig } from './config.js';
@@ -29,6 +30,7 @@ export const redisConnection = (url: string) => {
 
 const shared = [
   PrismaService,
+  AuditService,
   RedisService,
   RateLimiter,
   PublicCache,
