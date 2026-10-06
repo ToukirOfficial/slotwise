@@ -4,11 +4,13 @@ import { type AuthContext } from '../common/auth.js';
 import { AppError, notFound } from '../common/errors.js';
 import { idPage, toPage } from '../common/pagination.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { PublicCache } from '../business/public-cache.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const include = {
   user: { select: { email: true, passwordHash: true } },
+  services: { select: { serviceId: true } },
 } satisfies Prisma.StaffInclude;
 type StaffRow = Prisma.StaffGetPayload<{ include: typeof include }>;
 
@@ -20,6 +22,7 @@ export class StaffService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(OutboxService) private readonly outbox: OutboxService,
+    @Inject(PublicCache) private readonly cache: PublicCache,
   ) {}
 
   /** Login emails are shown to owners only. */
@@ -32,7 +35,7 @@ export class StaffService {
       email: isOwner ? (s.user?.email ?? null) : null,
       hasLogin: Boolean(s.user?.passwordHash),
       invitePending: Boolean(s.user && !s.user.passwordHash),
-      serviceIds: [],
+      serviceIds: s.services.map((x) => x.serviceId),
     };
   }
 
@@ -52,12 +55,14 @@ export class StaffService {
 
   async create(auth: AuthContext, displayName: string): Promise<Staff> {
     const s = await this.prisma.staff.create({ data: { businessId: auth.businessId, displayName }, include });
+    await this.cache.forgetBusiness(auth.businessId);
     return this.toDto(auth, s);
   }
 
   async update(auth: AuthContext, id: string, data: { displayName?: string; active?: boolean }): Promise<Staff> {
     await this.find(auth.businessId, id);
     const s = await this.prisma.staff.update({ where: { id }, data, include });
+    await this.cache.forgetBusiness(auth.businessId);
     return this.toDto(auth, s);
   }
 
@@ -79,6 +84,21 @@ export class StaffService {
       }
       throw err;
     }
+    await this.cache.forgetBusiness(auth.businessId);
+  }
+
+  /** Replaces the list of services this person delivers. Every id must be one of this business's services. */
+  async setServices(auth: AuthContext, id: string, serviceIds: string[]): Promise<Staff> {
+    await this.find(auth.businessId, id);
+    const unique = [...new Set(serviceIds)];
+    const owned = await this.prisma.service.count({ where: { id: { in: unique }, businessId: auth.businessId } });
+    if (owned !== unique.length) throw notFound('Service not found.');
+    await this.prisma.$transaction([
+      this.prisma.staffService.deleteMany({ where: { staffId: id } }),
+      this.prisma.staffService.createMany({ data: unique.map((serviceId) => ({ staffId: id, serviceId })) }),
+    ]);
+    await this.cache.forgetBusiness(auth.businessId);
+    return this.get(auth, id);
   }
 
   /** Creates (or re-sends) a login invite. An email can belong to one login only. */

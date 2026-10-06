@@ -10,6 +10,10 @@ import { BusinessService } from './business/business.service.js';
 import type { AppConfig } from './config.js';
 import { CoreModule } from './core.module.js';
 import { HealthController } from './health/health.controller.js';
+import { ScheduleController } from './schedule/schedule.controller.js';
+import { ScheduleService } from './schedule/schedule.service.js';
+import { ServicesController } from './services/services.controller.js';
+import { ServicesService } from './services/services.service.js';
 import { StaffController } from './staff/staff.controller.js';
 import { StaffService } from './staff/staff.service.js';
 
@@ -26,13 +30,19 @@ class BusinessModule {}
 @Module({ controllers: [StaffController], providers: [StaffService], exports: [StaffService] })
 class StaffModule {}
 
+@Module({ controllers: [ServicesController], providers: [ServicesService], exports: [ServicesService] })
+class ServicesModule {}
+
+@Module({ controllers: [ScheduleController], providers: [ScheduleService], exports: [ScheduleService] })
+class ScheduleModule {}
+
 /** The HTTP API (src/main.ts). */
 @Module({})
 export class AppModule {
   static forConfig(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule],
+      imports: [CoreModule.forConfig(config), AuthModule, BusinessModule, StaffModule, ServicesModule, ScheduleModule],
       controllers: [HealthController],
       providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
     };

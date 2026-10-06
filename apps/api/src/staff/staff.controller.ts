@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   createStaffBodySchema,
@@ -10,6 +10,7 @@ import {
   pageQuerySchema,
   type Staff,
   staffSchema,
+  staffServicesBodySchema,
   updateStaffBodySchema,
 } from '@slotwise/shared';
 import { Allow, Auth, type AuthContext } from '../common/auth.js';
@@ -70,5 +71,16 @@ export class StaffController {
     @Body({ schema: inviteStaffBodySchema }) body: { email: string },
   ): Promise<Staff> {
     return this.staff.invite(auth, p.id, body.email);
+  }
+
+  @Allow('owner')
+  @Put(':id/services')
+  @Returns(staffSchema)
+  setServices(
+    @Auth() auth: AuthContext,
+    @Param({ schema: idParamsSchema }) p: { id: string },
+    @Body({ schema: staffServicesBodySchema }) body: { serviceIds: string[] },
+  ): Promise<Staff> {
+    return this.staff.setServices(auth, p.id, body.serviceIds);
   }
 }
