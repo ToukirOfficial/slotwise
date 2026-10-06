@@ -17,6 +17,24 @@ enum Role {
   staff
 }
 
+enum BookingStatus {
+  confirmed
+  cancelled
+}
+
+enum BookingSource {
+  widget
+  api
+  dashboard
+}
+
+enum ActorType {
+  user
+  customer
+  api_key
+  system
+}
+
 enum AuthTokenKind {
   verify_email
   reset_password
@@ -46,7 +64,10 @@ model Business {
   users        User[]
   staff        Staff[]
   services     Service[]
+  customers    Customer[]
+  bookings     Booking[]
   outboxEvents OutboxEvent[]
+  auditLog     AuditLog[]
 
   @@map("businesses")
 }
@@ -126,6 +147,7 @@ model Staff {
   services      StaffService[]
   weeklyHours   WeeklyHours[]
   dateOverrides DateOverride[]
+  bookings      Booking[]
 
   @@index([businessId])
   @@map("staff")
@@ -147,6 +169,7 @@ model Service {
 
   business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   staff    StaffService[]
+  bookings Booking[]
 
   @@index([businessId])
   @@map("services")
@@ -217,4 +240,120 @@ model OutboxEvent {
   @@index([businessId])
   @@index([createdAt], map: "outbox_events_unprocessed_idx", where: raw("processed_at IS NULL"))
   @@map("outbox_events")
+}
+
+/// The only table with customer personal data. Erasure blanks name/email/phone and sets erasedAt;
+/// bookings keep just their times and service. Matched by email within a business (case-insensitive).
+model Customer {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  businessId      String    @map("business_id") @db.Uuid
+  name            String?
+  email           String?
+  emailNormalized String?   @map("email_normalized")
+  phone           String?
+  erasedAt        DateTime? @map("erased_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@unique([businessId, emailNormalized])
+  @@map("customers")
+}
+
+/// An appointment. Times are instants (UTC). blocked_start/end = appointment ± the service's buffers, and the
+/// hand-written exclusion constraint `bookings_no_overlap` (see the phase-4 migration) makes overlapping
+/// confirmed bookings for one staff member impossible. Service fields are a snapshot taken at booking time.
+model Booking {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  businessId           String        @map("business_id") @db.Uuid
+  staffId              String        @map("staff_id") @db.Uuid
+  serviceId            String        @map("service_id") @db.Uuid
+  customerId           String        @map("customer_id") @db.Uuid
+  startsAt             DateTime      @map("starts_at") @db.Timestamptz
+  endsAt               DateTime      @map("ends_at") @db.Timestamptz
+  blockedStart         DateTime      @map("blocked_start") @db.Timestamptz
+  blockedEnd           DateTime      @map("blocked_end") @db.Timestamptz
+  status               BookingStatus @default(confirmed)
+  /// Bumped on every change; emails, the .ics SEQUENCE and reminder jobs carry it.
+  version              Int           @default(1)
+  serviceName          String        @map("service_name")
+  durationMin          Int           @map("duration_min")
+  bufferBeforeMin      Int           @map("buffer_before_min")
+  bufferAfterMin       Int           @map("buffer_after_min")
+  pricePence           Int           @map("price_pence")
+  source               BookingSource
+  /// SHA-256 of the manage-link token (the token itself is never stored).
+  manageTokenHash      String        @unique @map("manage_token_hash")
+  manageTokenExpiresAt DateTime      @map("manage_token_expires_at") @db.Timestamptz
+  cancelledAt          DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancelReason         String?       @map("cancel_reason")
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    Staff      @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  service  Service    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  emails   EmailLog[]
+
+  @@index([businessId, startsAt])
+  @@index([staffId, startsAt])
+  @@index([serviceId])
+  @@index([customerId])
+  @@map("bookings")
+}
+
+/// Idempotency-Key records for booking create/reschedule. Written inside the booking transaction, kept 24 h.
+model IdempotencyKey {
+  businessId     String   @map("business_id") @db.Uuid
+  key            String
+  requestHash    String   @map("request_hash")
+  responseStatus Int      @map("response_status")
+  responseJson   Json     @map("response_json")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@id([businessId, key])
+  @@index([createdAt])
+  @@map("idempotency_keys")
+}
+
+/// Send log: one row per email actually sent. Checked before sending, so retries don't send twice.
+model EmailLog {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  bookingId String   @map("booking_id") @db.Uuid
+  kind      String
+  version   Int
+  sentAt    DateTime @default(now()) @map("sent_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, kind, version])
+  @@map("email_log")
+}
+
+/// Append-only. before/after hold ids, status and times only — never customer personal data.
+model AuditLog {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  actorType  ActorType @map("actor_type")
+  actorId    String?   @map("actor_id")
+  action     String
+  entity     String
+  entityId   String    @map("entity_id")
+  beforeJson Json?     @map("before_json")
+  afterJson  Json?     @map("after_json")
+  at         DateTime  @default(now()) @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, entity, entityId])
+  @@index([businessId, at])
+  @@map("audit_log")
 }

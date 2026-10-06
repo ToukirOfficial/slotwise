@@ -3,7 +3,7 @@ import { type BusyInterval, findSlots, type SlotDay } from '@slotwise/engine';
 import type { Availability } from '@slotwise/shared';
 import { Temporal } from 'temporal-polyfill';
 import { notFound } from '../common/errors.js';
-import { dateColumn, fromDateColumn } from '../common/time.js';
+import { dateColumn, fromDateColumn, toInstant } from '../common/time.js';
 import type { Business, Service } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -14,6 +14,9 @@ export interface SlotQuery {
   from: string;
   to: string;
 }
+
+/** Lengths that decide which starts fit: a service's current settings, or a booking's snapshot. */
+export type Lengths = Pick<Service, 'durationMin' | 'bufferBeforeMin' | 'bufferAfterMin'>;
 
 export interface StaffSlots {
   staffId: string;
@@ -54,11 +57,11 @@ export class AvailabilityService {
   /** Free starts per staff member. `excludeBookingId` ignores one booking's own time (for rescheduling it). */
   async slotsByStaff(
     business: Business,
-    service: Service,
+    service: Lengths,
     staffIds: string[],
     from: string,
     to: string,
-    opts: { now?: Temporal.Instant; excludeBookingId?: string } = {},
+    opts: { now?: Temporal.Instant; excludeBookingId?: string; ignoreBusy?: boolean } = {},
   ): Promise<StaffSlots[]> {
     if (staffIds.length === 0) return [];
     const now = opts.now ?? Temporal.Now.instant();
@@ -72,7 +75,7 @@ export class AvailabilityService {
       this.prisma.dateOverride.findMany({
         where: { staffId: { in: staffIds }, date: { gte: dateColumn(from), lte: dateColumn(to) } },
       }),
-      this.busyIntervals(staffIds, rangeStart, rangeEnd, opts.excludeBookingId),
+      opts.ignoreBusy ? new Map<string, BusyInterval[]>() : this.busyIntervals(staffIds, rangeStart, rangeEnd, opts.excludeBookingId),
     ]);
 
     return staffIds.map((staffId) => ({
@@ -110,14 +113,28 @@ export class AvailabilityService {
     };
   }
 
-  /** Confirmed bookings (with their buffers) per staff member. Bookings arrive in the bookings phase. */
-  protected async busyIntervals(
-    _staffIds: string[],
-    _from: Temporal.Instant,
-    _to: Temporal.Instant,
-    _excludeBookingId?: string,
+  /** Confirmed bookings per staff member as busy intervals, already widened by their own buffers. */
+  private async busyIntervals(
+    staffIds: string[],
+    from: Temporal.Instant,
+    to: Temporal.Instant,
+    excludeBookingId?: string,
   ): Promise<Map<string, BusyInterval[]>> {
-    return new Map();
+    const rows = await this.prisma.booking.findMany({
+      where: {
+        staffId: { in: staffIds },
+        status: 'confirmed',
+        blockedEnd: { gt: new Date(from.epochMilliseconds) },
+        blockedStart: { lt: new Date(to.epochMilliseconds) },
+        ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
+      },
+      select: { staffId: true, blockedStart: true, blockedEnd: true },
+    });
+    const map = new Map<string, BusyInterval[]>();
+    for (const r of rows) {
+      map.set(r.staffId, [...(map.get(r.staffId) ?? []), { start: toInstant(r.blockedStart), end: toInstant(r.blockedEnd) }]);
+    }
+    return map;
   }
 }
 

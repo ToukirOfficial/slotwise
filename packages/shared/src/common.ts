@@ -55,11 +55,11 @@ export const tokenSchema = z
   .regex(/^[A-Za-z0-9_-]+$/);
 
 /**
- * An instant in a response. Services return `Date`; the serializer turns it into an ISO string,
- * so the wire format (and the OpenAPI docs) is always a UTC ISO-8601 string.
+ * An instant in a response. Services return `Date` (or an ISO string, e.g. a stored idempotent response);
+ * the serializer always emits a UTC ISO-8601 string, which is also what the OpenAPI docs show.
  */
-export const instantSchema = z.codec(z.date(), z.iso.datetime(), {
-  decode: (d) => d.toISOString(),
+export const instantSchema = z.codec(z.union([z.date(), z.iso.datetime()]), z.iso.datetime(), {
+  decode: (d) => (typeof d === 'string' ? new Date(d).toISOString() : d.toISOString()),
   encode: (s) => new Date(s),
 });
 
