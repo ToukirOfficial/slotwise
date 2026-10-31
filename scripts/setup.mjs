@@ -84,7 +84,8 @@ run('pnpm --filter @slotwise/api exec prisma migrate deploy');
 run('pnpm --filter @slotwise/api exec prisma migrate deploy', { DATABASE_URL: process.env.TEST_DATABASE_URL });
 
 step('Building');
-run('pnpm build');
+// .env sets NODE_ENV=development for `pnpm dev`; a production build needs production.
+run('pnpm build', { NODE_ENV: 'production' });
 
 step('Seeding the demo business');
 run('pnpm --filter @slotwise/api seed');

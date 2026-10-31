@@ -22,13 +22,32 @@ type View = 'day' | 'week';
 function DayColumn({ date, bookings, showStaff, compact }: { date: string; bookings: Booking[]; showStaff: boolean; compact: boolean }) {
   const isToday = date === ukToday();
   return (
-    <section aria-label={formatLocalDate(date)} className="grid content-start gap-2">
-      <h2 className={cn('text-sm font-medium', isToday && 'text-primary')}>
-        {formatLocalDate(date, compact ? { weekday: 'short', day: 'numeric' } : { weekday: 'long', day: 'numeric', month: 'long' })}
+    <section
+      aria-label={formatLocalDate(date)}
+      className={cn('grid min-w-0 content-start gap-2 bg-card p-2.5', compact ? 'min-h-40' : 'rounded-lg border p-4')}
+    >
+      <h2 className="flex items-center gap-2 px-0.5 pb-1 text-sm">
+        {compact ? (
+          <>
+            <span className="text-muted-foreground">{formatLocalDate(date, { weekday: 'short' })}</span>
+            <span
+              className={cn(
+                'grid size-7 place-items-center rounded-full font-semibold tabular-nums',
+                isToday && 'bg-primary text-primary-foreground',
+              )}
+            >
+              {formatLocalDate(date, { day: 'numeric' })}
+            </span>
+          </>
+        ) : (
+          <span className={cn('font-medium', isToday && 'text-primary')}>
+            {formatLocalDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}
+          </span>
+        )}
         {isToday && <span className="sr-only"> (today)</span>}
       </h2>
       {bookings.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{compact ? '—' : 'No bookings.'}</p>
+        <p className="px-0.5 text-[13px] text-muted-foreground">{compact ? 'Free' : 'No bookings.'}</p>
       ) : (
         bookings.map((b) => <BookingCard key={b.id} b={b} showStaff={showStaff} />)
       )}
@@ -55,7 +74,7 @@ export default function CalendarPage() {
     <>
       <PageHeader
         title="Calendar"
-        description={`${me.business.name} · UK time`}
+        description={`${me.business.name}, shown in UK time`}
         actions={
           <Button asChild size="sm">
             <Link href="/bookings/new">
@@ -116,7 +135,12 @@ export default function CalendarPage() {
           Share your booking page, or <Link className="underline" href="/bookings/new">add a booking</Link> for a phone or walk-in customer.
         </EmptyState>
       ) : (
-        <div className={cn('grid gap-4', view === 'week' && 'md:grid-cols-7')}>
+        <div
+          className={cn(
+            'grid',
+            view === 'week' && 'gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-7',
+          )}
+        >
           {days.map((d) => (
             <DayColumn
               key={d}

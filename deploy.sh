@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
-# Deploys Slotwise to the VPS (SSH alias "vps"): build locally, upload a new release, migrate, switch, reload.
-# Rolls back to the previous release if the health check fails. Works on macOS and WSL.
+# Deploys Slotwise to your own server over SSH: build locally, upload a new release, migrate, switch, reload.
+# Rolls back to the previous release if the health check fails. Works on macOS and Linux/WSL.
 #
-# First deploy: confirm APP_DIR, DOMAIN and DB_NAME against ~/projects/SETUP.md (section 3), create
-# $APP_DIR/shared/.env on the server, and check Redis is `noeviction` + AOF (PRD open question 3).
+# Server details are never stored in the repo. Put them in ./deploy.env (gitignored) or the environment:
+#   REMOTE=my-server            # an SSH host or alias from ~/.ssh/config
+#   APP_DIR=/srv/slotwise       # where releases live on the server
+#   DOMAIN=booking.example.com  # public hostname, used for the health check
+#   DB_NAME=slotwise            # optional, defaults to "slotwise"
+# Before the first deploy, create $APP_DIR/shared/.env on the server and set Redis to `noeviction` + AOF.
 set -euo pipefail
 
-REMOTE="${REMOTE:-vps}"
-APP_DIR="${APP_DIR:-/home/slotwise/htdocs/slotwise}"      # CloudPanel site directory (confirm in SETUP.md)
-DOMAIN="${DOMAIN:-slotwise.toukirahmedrony.com}"
+cd "$(dirname "$0")"
+# shellcheck disable=SC1091
+[ -f deploy.env ] && . ./deploy.env
+
+: "${REMOTE:?Set REMOTE in deploy.env (see the top of deploy.sh)}"
+: "${APP_DIR:?Set APP_DIR in deploy.env (see the top of deploy.sh)}"
+: "${DOMAIN:?Set DOMAIN in deploy.env (see the top of deploy.sh)}"
 DB_NAME="${DB_NAME:-slotwise}"
 KEEP_RELEASES=3
 KEEP_DUMPS=5
@@ -25,10 +33,9 @@ elif [ -x /usr/local/bin/node ]; then
 fi
 command -v pnpm >/dev/null || { echo "pnpm not found"; exit 1; }
 
-cd "$(dirname "$0")"
 RELEASE="$(date -u +%Y%m%d%H%M%S)"
 
-echo "▸ Building locally (never on the VPS)"
+echo "▸ Building locally (never on the server)"
 pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
@@ -37,7 +44,7 @@ echo "▸ Uploading release $RELEASE"
 ssh "$REMOTE" "mkdir -p '$APP_DIR/releases/$RELEASE' '$APP_DIR/shared' '$APP_DIR/backups'"
 rsync -az --delete \
   --exclude '.git' --exclude 'node_modules' --exclude '.env' --exclude '.env.*' --exclude 'tmp/' \
-  --exclude '.turbo' --exclude 'apps/web/.next/cache' --exclude 'CLAUDE.md' --exclude 'PRD.md' \
+  --exclude '.turbo' --exclude 'apps/web/.next/cache' --exclude 'CLAUDE.md' --exclude 'PRD.md' --exclude 'deploy.env' --exclude 'plan.md' \
   ./ "$REMOTE:$APP_DIR/releases/$RELEASE/"
 
 echo "▸ Installing, migrating and switching on the server"

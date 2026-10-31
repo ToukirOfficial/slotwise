@@ -209,7 +209,7 @@ Next.js only displays. Every auth, permission and business rule lives in NestJS.
 | Zod as Standard Schema | NestJS 12 validates and serializes with the same schemas that generate the docs |
 
 Stack: TypeScript 6 (strict), NestJS 12, Next.js 16.3, Prisma 7 + PostgreSQL 18, Redis + BullMQ, Zod 4,
-Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Deployed to a VPS with PM2. No Docker, no cloud services.
+Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server with PM2. No Docker, no cloud services.
 
 ## Security
 
@@ -230,7 +230,7 @@ Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Deployed to a VPS with PM2. 
 ## Tests
 
 `pnpm test` runs **157 tests**, all passing: 49 engine unit tests and 108 API integration tests against real
-PostgreSQL and Redis (no database mocks). They cover only what matters (project rule 11):
+PostgreSQL and Redis (no database mocks). They cover only what matters:
 
 | Area | Covers |
 |---|---|

@@ -1,9 +1,9 @@
 # ASSUMPTIONS.md — decisions the PRD doesn't make
 
-Change any of these by telling me. Items marked (Q) depend on an open question in `plan.md`.
+Change any of these by telling me. Items marked (Q) answered an open question in the original plan.
 
 ## Environment
-- **A0.** Development happens on WSL (Ubuntu), not the Mac that the project rules mentions. Scripts, `pnpm setup` and `deploy.sh` must work on both: load nvm from `~/.nvm/nvm.sh`, with Homebrew paths only as a fallback.
+- **A0.** Scripts, `pnpm run setup` and `deploy.sh` work on both Linux (incl. WSL) and macOS: they load nvm from `~/.nvm/nvm.sh`, with Homebrew paths only as a fallback.
 - **A0b.** Ports: web 8015, API 8115. Databases: `slotwise_dev` and `slotwise_test`.
 
 ## Answers to the open questions
@@ -20,7 +20,7 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 ## Business rules and defaults
 - **A7.** Defaults: minimum notice 120 min, maximum 60 days ahead, slot step 15 min, cut-off 24 h, retention 24 months, owner notifications on.
 - **A8.** Staff can create, cancel and reschedule bookings only in their own diary. They can't edit services or business settings.
-- **A9.** `Idempotency-Key` is required on **every** reschedule endpoint (dashboard, API and manage link), not only the manage-link one listed in PRD §7. the project rules requires it for reschedule in general.
+- **A9.** `Idempotency-Key` is required on **every** reschedule endpoint (dashboard, API and manage link), not only the manage-link one listed in PRD §7.
 - **A10.** For "any staff", only active staff linked to the service are tried. "Fewest bookings that day" counts confirmed bookings on that local date.
 - **A11.** The manage token stays the same on reschedule, and its expiry moves to the new end time. After a cancel the link still opens (showing "cancelled") until the original end time, but every change is refused.
 - **A12.** The limit of 3 future bookings per email does not apply to bookings made by the owner or staff in the dashboard (walk-ins, regulars).
@@ -46,7 +46,7 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A24.** An invite that was never accepted doesn't reserve the email: registering a new business with that email removes the pending invite. Demo businesses can't invite anyone, so a demo visitor can't use up someone else's email.
 - **A25.** Every list endpoint uses the same `{ items, nextCursor }` shape. Where possible the cursor is the UUIDv7 id (time-ordered). The dashboard loads services, staff, keys and webhooks with `limit=100`.
 - **A26.** `ioredis` is a direct dependency. It's the client BullMQ already uses, and it's needed for the health `PING` and the cache.
-- **A27.** the project rules and `PRD.md` are local working docs and are gitignored: neither is on the allowed-docs list for the public repo, and the project rules names other projects.
+- **A27.** Local working docs (project rules, `PRD.md`, `plan.md`) and server details (`deploy.env`) are gitignored and never published.
 - **A28.** The demo business's web address (slug) can't be changed, so the README's embed example keeps working.
 
 
@@ -72,5 +72,5 @@ Change any of these by telling me. Items marked (Q) depend on an open question i
 - **A47.** Erasing a customer who still has upcoming confirmed bookings is refused (cancel them first), so erasure never silently cancels appointments. Automatic retention erasure only ever affects customers with no booking inside the retention window.
 - **A48.** Clean-up blanks webhook payloads older than 30 days but keeps the delivery-log rows (status, timing, error). Expired sessions, and email tokens that have been used or expired for a day, are deleted.
 - **A49.** The demo clinic ("Demo Physio Clinic", `demo-physio`) uses fictional people only (example.com addresses, Ofcom's drama phone numbers). Its bookings are placed with the real slot engine. `/login?demo=1` fills in the public demo login.
-- **A50.** `deploy.sh` keeps 3 releases (for rollback) and the last 5 database dumps. Server paths are variables to confirm against `SETUP.md` at the first deploy. Next.js reads `PORT` in production, so the server `.env` sets it to the web port.
+- **A50.** `deploy.sh` keeps 3 releases (for rollback) and the last 5 database dumps. Server host, paths and domain come from a gitignored `deploy.env`, never from the repo. Next.js reads `PORT` in production, so the server `.env` sets it to the web port.
 - **A51.** `pnpm audit`: the critical and high issues that have fixes are patched with overrides (`mysql2`, `deepmerge-ts`, both pulled in by the Prisma CLI). One high remains: `braces`, with no fixed version yet. It's reached only through the shadcn CLI at build time, on globs we write ourselves, never on user input.

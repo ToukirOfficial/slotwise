@@ -1,4 +1,4 @@
-// PM2 processes on the VPS. Each runs from the `current` release; all listen on 127.0.0.1 only.
+// PM2 processes on the server. Each runs from the `current` release; all listen on 127.0.0.1 only.
 // Ports come from the shared .env (WEB_PORT, API_PORT), set during the first deploy.
 module.exports = {
   apps: [
@@ -16,7 +16,7 @@ module.exports = {
       cwd: './apps/api',
       script: 'dist/main.js',
       node_args: '--env-file=../../.env',
-      exec_mode: 'fork', // one process: the in-memory rate limiter relies on it (project rule 12)
+      exec_mode: 'fork', // one process: the in-memory rate limiter relies on it (keep the API to a single process)
       env: { NODE_ENV: 'production' },
       max_memory_restart: '400M',
     },
