@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VerifyBanner } from '@/components/verify-banner';
-import { firstBookingWeek, useBookingsInRange } from '@/lib/bookings';
+import { upcomingWeek, useBookingsInRange } from '@/lib/bookings';
 import { addDays, formatLocalDate, mondayOf, ukDateOf, ukToday } from '@/lib/format';
 import { useApi } from '@/lib/use-api';
 import { cn } from '@/lib/utils';
@@ -61,11 +61,12 @@ export default function CalendarPage() {
   const [view, setView] = useState<View>('week');
   const [date, setDate] = useState(ukToday());
   const [staffId, setStaffId] = useState('all');
-  // Open on this week if it has bookings, otherwise on the next week that does (until then, show loading).
+  // Open on this week while it still has upcoming bookings, otherwise on the next week that does
+  // (until we know, show loading).
   const [opening, setOpening] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    firstBookingWeek(mondayOf(ukToday()))
+    upcomingWeek(ukToday())
       .then((d) => !cancelled && d && setDate(d))
       .catch(() => undefined) // fall back to this week
       .finally(() => !cancelled && setOpening(false));

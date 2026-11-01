@@ -38,7 +38,7 @@ Set `PUBLIC_DEMO=true` to run a public demo: sign-up, invites and password reset
 
 ## Run it locally
 
-You need **Node.js 24**, **pnpm**, **PostgreSQL 18** and **Redis** running locally. No Docker.
+You need **Node.js 24**, **pnpm**, **PostgreSQL 16 or newer** and **Redis** running locally. No Docker.
 
 ```bash
 git clone https://github.com/ToukirOfficial/slotwise.git && cd slotwise
@@ -210,7 +210,7 @@ Next.js only displays. Every auth, permission and business rule lives in NestJS.
 | Web Component + Shadow DOM | Works on any site (WordPress, Laravel, plain HTML) with no CSS clashes |
 | Zod as Standard Schema | NestJS 12 validates and serializes with the same schemas that generate the docs |
 
-Stack: TypeScript 6 (strict), NestJS 12, Next.js 16.3, Prisma 7 + PostgreSQL 18, Redis + BullMQ, Zod 4,
+Stack: TypeScript 6 (strict), NestJS 12, Next.js 16.3, Prisma 7 + PostgreSQL 16 or newer, Redis + BullMQ, Zod 4,
 Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server with PM2. No Docker, no cloud services.
 
 ## Security
@@ -231,7 +231,7 @@ Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server wit
 
 ## Tests
 
-`pnpm test` runs **171 tests**, all passing: 49 engine unit tests, 3 web tests and 119 API integration tests against real
+`pnpm test` runs **175 tests**, all passing: 49 engine unit tests, 7 web tests and 119 API integration tests against real
 PostgreSQL and Redis (no database mocks). They cover only what matters:
 
 | Area | Covers |

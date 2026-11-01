@@ -363,7 +363,7 @@ function SelfHost({ publicDemo }: { publicDemo: boolean }) {
         <div>
           <h2 className="text-3xl font-semibold tracking-[-0.025em]">Run it on your own server.</h2>
           <p className="mt-4 max-w-lg leading-relaxed text-muted-foreground">
-            Node.js 24, PostgreSQL 18 and Redis. No Docker and no paid cloud services. Your customers’ data stays on a
+            Node.js 24, PostgreSQL 16 or newer and Redis. No Docker and no paid cloud services. Your customers’ data stays on a
             machine you control, and the code is yours to change under the MIT licence.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">

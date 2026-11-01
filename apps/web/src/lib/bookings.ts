@@ -3,7 +3,7 @@
 import type { Booking } from '@slotwise/shared';
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import { mondayOf, ukDateOf } from './format';
+import { weekOfFirstUpcoming } from './opening-week';
 
 type Page = { items: Booking[]; nextCursor: string | null };
 
@@ -44,12 +44,18 @@ export function useBookingsInRange(from: string, to: string, staffId: string) {
 }
 
 /**
- * The Monday of the first week, from `monday` on, with a confirmed booking (null when there are none).
- * The list is sorted by start time, so one booking is enough.
+ * The Monday of the week to open the calendar on: the week of the next upcoming confirmed booking
+ * (null when there is none). Starts from today, since earlier days can't have anything upcoming.
  */
-export async function firstBookingWeek(monday: string): Promise<string | null> {
-  const qs = new URLSearchParams({ from: monday, status: 'confirmed', limit: '1' });
-  const page = await api<Page>(`/bookings?${qs.toString()}`);
-  const first = page.items[0];
-  return first ? mondayOf(ukDateOf(first.startsAt)) : null;
+export async function upcomingWeek(today: string): Promise<string | null> {
+  let cursor: string | null = null;
+  for (let i = 0; i < 5; i++) {
+    const qs = new URLSearchParams({ from: today, status: 'confirmed', limit: '100' });
+    if (cursor) qs.set('cursor', cursor);
+    const page: Page = await api<Page>(`/bookings?${qs.toString()}`);
+    const week = weekOfFirstUpcoming(page.items, Date.now());
+    if (week || !page.nextCursor) return week;
+    cursor = page.nextCursor;
+  }
+  return null;
 }

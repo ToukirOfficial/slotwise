@@ -51,18 +51,25 @@ describe('demo seed date range', () => {
     const pastDays = new Set(past.map((b) => b.startsAt.toISOString().slice(0, 10)));
     expect(pastDays.size).toBeGreaterThanOrEqual(5);
     for (const b of bookings) expect(b.createdAt.getTime()).toBeLessThanOrEqual(Math.min(b.startsAt.getTime(), now.getTime()));
+
+    // Sunday afternoon: this week's bookings are all over, so the dashboard opens on next week,
+    // whose first upcoming booking is on Monday 2 Nov.
+    const sunday = today; // 2026-11-01
+    const upcoming = bookings.filter((b) => b.status === 'confirmed' && b.startsAt > now);
+    expect(upcoming.filter((b) => b.startsAt < ukMidnight(sunday.add({ days: 1 })))).toHaveLength(0);
+    expect(upcoming[0]!.startsAt.getTime()).toBeGreaterThanOrEqual(ukMidnight(sunday.add({ days: 1 })).getTime());
+    expect(upcoming[0]!.startsAt.getTime()).toBeLessThan(ukMidnight(sunday.add({ days: 2 })).getTime());
   });
 
   it.each([
     ['Monday morning', '2026-11-02T07:00:00Z'],
     ['Wednesday afternoon', '2026-11-04T15:00:00Z'],
     ['Sunday night', '2026-11-08T23:00:00Z'],
-  ])('the current week always has confirmed bookings (%s)', async (_label, iso) => {
-    const { today, bookings } = await seedAt(iso);
+  ])('the dashboard always has an upcoming week to open on: this week or next (%s)', async (_label, iso) => {
+    const { now, today, bookings } = await seedAt(iso);
     const monday = today.subtract({ days: today.dayOfWeek - 1 });
-    const from = ukMidnight(monday);
-    const to = ukMidnight(monday.add({ days: 7 }));
-    const thisWeek = bookings.filter((b) => b.status === 'confirmed' && b.startsAt >= from && b.startsAt < to);
-    expect(thisWeek.length).toBeGreaterThan(0);
+    const endOfNextWeek = ukMidnight(monday.add({ days: 14 }));
+    const upcoming = bookings.filter((b) => b.status === 'confirmed' && b.startsAt > now && b.startsAt < endOfNextWeek);
+    expect(upcoming.length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // `pnpm run setup`: takes a fresh clone to a running app.
-// Needs PostgreSQL 18 and Redis running locally. Uses only Node built-ins so it runs before `pnpm install`.
+// Needs PostgreSQL 16 or newer and Redis running locally. Uses only Node built-ins so it runs before `pnpm install`.
 import { execFileSync, execSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
