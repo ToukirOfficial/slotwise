@@ -98,7 +98,15 @@ function Hero() {
             The demo resets every night and never sends email.
           </p>
         </div>
-        <CollisionDemo />
+        <div>
+          <CollisionDemo />
+          <p className="mt-2.5 text-[12px] text-muted-foreground">
+            Illustration of the real concurrency test. See{' '}
+            <a href={`${REPO_URL}/blob/main/apps/api/test/double-booking.test.ts`} className="font-mono underline underline-offset-2 hover:text-foreground">
+              apps/api/test/double-booking.test.ts
+            </a>
+          </p>
+        </div>
       </div>
     </section>
   );

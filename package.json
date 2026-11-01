@@ -13,12 +13,15 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "screenshots": "node scripts/screenshots.mjs",
+    "demo-gif": "node scripts/demo-gif.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "10.11.0",
     "globals": "^17.13.0",
+    "playwright": "^1.64.1",
     "prettier": "3.9.9",
     "turbo": "2.11.7",
     "typescript": "6.0.3",

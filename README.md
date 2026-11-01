@@ -1,7 +1,35 @@
 # Slotwise
 
+**Appointment booking for UK businesses that can't double-book: a REST API, an embeddable widget, an owner dashboard and a background worker.**
+
 [![CI](https://github.com/ToukirOfficial/slotwise/actions/workflows/ci.yml/badge.svg)](https://github.com/ToukirOfficial/slotwise/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/live%20demo-slotwise.toukirahmedrony.com-2457e6)](https://slotwise.toukirahmedrony.com)
+![PostgreSQL 16 | 18](https://img.shields.io/badge/PostgreSQL-16%20%7C%2018-336791)
+![Node.js 24](https://img.shields.io/badge/Node.js-24-3c873a)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+
+![A customer books a slot on the booking page, the booking appears on the owner's calendar, then 100 requests race for one slot and only one wins](docs/images/demo.gif)
+
+> **Try it in 30 seconds**
+>
+> - **[Open the live demo](https://slotwise.toukirahmedrony.com/login?demo=1)**: the demo login is pre-filled, just click **Log in**
+>   (`demo@slotwise.example` / `demo-physio-2026`).
+> - **[Book as a customer](https://slotwise.toukirahmedrony.com/b/demo-physio)** on the clinic's public booking page.
+> - **[Read the API docs](https://slotwise.toukirahmedrony.com/api/docs)** (OpenAPI, every error has a stable `errorCode`).
+>
+> The demo clinic resets every night and never sends email.
+
+### Proof
+
+| What | Result | Where it comes from |
+|---|---|---|
+| Tests | **176 passing** (49 engine, 7 web, 120 API) on **PostgreSQL 16 and 18** | [CI](https://github.com/ToukirOfficial/slotwise/actions/workflows/ci.yml), on every push |
+| Double-booking | **100 parallel requests** for one slot → **1 booking, 99 rejected** (409 `SLOT_TAKEN`) | [`double-booking.test.ts`](apps/api/test/double-booking.test.ts), real PostgreSQL |
+| Slot engine | **~10 ms** for one staff member over 30 days | `pnpm --filter @slotwise/engine bench` |
+| Availability endpoint | **~16 ms** median locally, **~37 ms** on the live server (HTTP + database) | Same query on the demo data |
+| Widget | **~5 KB** gzipped (4.9 KB), one file, no dependencies | `packages/widget` build output |
+
+---
 
 An open-source booking engine for UK businesses that sell 1-to-1 appointments (clinics, solicitors, tutors,
 driving instructors). It comes with a REST API, an embeddable booking widget, an owner dashboard and a
@@ -18,15 +46,27 @@ A business adds one script tag and one HTML tag to its website. Its customers ca
 <slotwise-booking business="demo-physio"></slotwise-booking>
 ```
 
-**Demo:** log in at `/login?demo=1` (`demo@slotwise.example` / `demo-physio-2026`), or book as a customer at
-`/b/demo-physio`. The demo clinic is reset every night and never sends email.
-Set `PUBLIC_DEMO=true` to run a public demo: sign-up, invites and password reset are switched off
+**Running your own public demo:** set `PUBLIC_DEMO=true`. Sign-up, invites and password reset are switched off
 (403 `DEMO_MODE`, hidden in the UI) and mail only goes to the log.
+
+---
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Landing page hero with the 100-requests demo](docs/images/hero.png) | ![The 100 requests, one slot demo after it finishes: 1 booked, 99 refused](docs/images/collision-demo.png) |
+| **Landing page.** The hero states the guarantee and shows it. | **100 requests, one slot.** An illustration of what the [double-booking test](apps/api/test/double-booking.test.ts) proves. |
+| ![The public booking page part-way through: choosing a time](docs/images/booking-page.png) | ![The owner's calendar, week view with upcoming bookings](docs/images/dashboard.png) |
+| **Booking page** (`/b/demo-physio`), choosing a time. | **Dashboard calendar**, opened on the week with upcoming bookings. |
+| ![A booking's detail page with its history: booked, then moved by the customer](docs/images/booking-detail.png) | ![The OpenAPI docs](docs/images/api-docs.png) |
+| **Booking detail** with its audit trail. | **API docs** at `/api/docs`. |
 
 ---
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Run it locally](#run-it-locally)
 - [Hard problems and how I solved them](#hard-problems-and-how-i-solved-them)
 - [Your first API booking](#your-first-api-booking-under-15-minutes)
@@ -118,7 +158,7 @@ scanned with a single moving pointer, so the cost is linear.
 
 - **49 unit tests** run in milliseconds: split shifts, buffers, notice, horizon, overrides, and all four
   2026–2027 clock changes.
-- **Speed:** the engine alone takes about **11 ms** for one staff member over 30 days (Vitest bench,
+- **Speed:** the engine alone takes about **10 ms** for one staff member over 30 days (Vitest bench,
   `pnpm --filter @slotwise/engine bench`). The full public endpoint, including HTTP and database, takes about
   **16 ms (median)** for the same query on the demo data. The target was under 200 ms.
 
@@ -187,6 +227,41 @@ times over about a day, every attempt appears in the delivery log, and you can r
 event from the dashboard.
 
 ## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Browsers
+    W["Booking widget<br/>&lt;slotwise-booking&gt; on any site"]
+    D["Owner dashboard<br/>and /b/{slug} booking page"]
+  end
+
+  subgraph Server["One Linux server (PM2)"]
+    N["Next.js<br/>pages + /api proxy"]
+    A["NestJS API<br/>auth, rules, validation"]
+    K["Worker<br/>BullMQ processors"]
+  end
+
+  subgraph Data
+    P[("PostgreSQL<br/>bookings + exclusion constraint<br/>outbox table, send log, audit log")]
+    R[("Redis<br/>BullMQ queues")]
+  end
+
+  S["SMTP<br/>confirmations, reminders"]
+  H["Webhooks<br/>signed POSTs to customers' URLs"]
+
+  W -- "/api/v1/public/*" --> N
+  D --> N
+  N -- "/api/* (proxy)" --> A
+  A -- "booking + outbox event<br/>in one transaction" --> P
+  A -- "enqueue after commit<br/>(fast path)" --> R
+  K -- "relay: unprocessed outbox<br/>events every 5 s" --> P
+  K -- "relay enqueues<br/>(deterministic job ids)" --> R
+  R --> K
+  K --> S
+  K --> H
+```
+
+More detail, including how the outbox keeps emails and webhooks from being lost: [`docs/architecture.md`](docs/architecture.md).
 
 ```
 slotwise/                     pnpm workspaces + Turborepo
