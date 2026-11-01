@@ -56,6 +56,8 @@ echo "▸ Building locally (never on the server)"
 pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
+# Next.js bakes the /api rewrite into the build: refuse to ship one that points anywhere else.
+grep -q "${API_URL}" apps/web/.next/routes-manifest.json || { echo "✗ The web build doesn't proxy /api to $API_URL"; exit 1; }
 
 echo "▸ Uploading release $RELEASE"
 remote "$APP_DIR" "$RELEASE" <<'MKDIR'
