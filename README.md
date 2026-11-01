@@ -231,7 +231,7 @@ Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server wit
 
 ## Tests
 
-`pnpm test` runs **175 tests**, all passing: 49 engine unit tests, 7 web tests and 119 API integration tests against real
+`pnpm test` runs **176 tests**, all passing: 49 engine unit tests, 7 web tests and 120 API integration tests against real
 PostgreSQL and Redis (no database mocks). They cover only what matters:
 
 | Area | Covers |

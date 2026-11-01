@@ -4,6 +4,7 @@ import { hashPassword } from '../auth/passwords.js';
 import { manageToken } from '../bookings/manage-token.js';
 import { sha256 } from '../common/crypto.js';
 import { uuidv7 } from '../common/ids.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 /** Public demo login (shown in the README). The business is flagged is_demo: no email, keys or webhooks. */
@@ -21,6 +22,8 @@ export const DEMO_PAST_DAYS = 7;
 export const DEMO_FUTURE_DAYS = 14;
 /** Which past bookings (in creation order) are cancelled; the rest of the past ones happened. */
 const CANCELLED_PAST = new Set([3, 10]);
+/** Which upcoming booking (in creation order) was moved once, so its history shows a reschedule. */
+const MOVED_UPCOMING = 2;
 
 // Fictional people only: example.com addresses and Ofcom's drama phone range.
 const CUSTOMERS = ['Sam Taylor', 'Jordan Lee', 'Chris Patel', 'Morgan Davies', 'Jamie Wilson', 'Riley Brown', 'Casey Green', 'Robin Hall'].map(
@@ -102,6 +105,9 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
     const busy = new Map<string, { start: Temporal.Instant; end: Temporal.Instant }[]>();
     let n = 0;
     let past = 0;
+    let upcoming = 0;
+    // The audit trail the dashboard shows on each booking, written as the real flows would have.
+    const audit: Prisma.AuditLogCreateManyInput[] = [];
     for (let d = -DEMO_PAST_DAYS; d <= DEMO_FUTURE_DAYS; d++) {
       const date = today.add({ days: d }).toString();
       const planFrom = d < 0 ? today.add({ days: d - 1 }).toZonedDateTime(ZONE).toInstant() : now;
@@ -127,14 +133,18 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
           const blockedEnd = new Date(endsAt.getTime() + service.bufferAfterMin * 60_000);
           const id = uuidv7();
           const cancelled = d < 0 && CANCELLED_PAST.has(past++);
+          const moved = startsAt.getTime() > now.epochMilliseconds && upcoming++ === MOVED_UPCOMING;
           const DAY = 86_400_000;
+          const source = n % 3 === 0 ? 'dashboard' : 'widget';
+          const customerId = customers[n % customers.length]!.id;
+          const createdAt = new Date(Math.min(startsAt.getTime() - (2 + (n % 5)) * DAY, now.epochMilliseconds));
           await tx.booking.create({
             data: {
               id,
               businessId: business.id,
               staffId: staff.id,
               serviceId: service.id,
-              customerId: customers[n++ % customers.length]!.id,
+              customerId,
               startsAt,
               endsAt,
               blockedStart: startsAt,
@@ -144,17 +154,49 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
               bufferBeforeMin: service.bufferBeforeMin,
               bufferAfterMin: service.bufferAfterMin,
               pricePence: service.pricePence,
-              source: n % 3 === 0 ? 'dashboard' : 'widget',
-              // Booked a few days ahead, like real customers.
-              createdAt: new Date(Math.min(startsAt.getTime() - (2 + (n % 5)) * DAY, now.epochMilliseconds)),
+              source,
+              createdAt, // booked a few days ahead, like real customers
               ...(cancelled
-                ? { status: 'cancelled' as const, cancelledAt: new Date(startsAt.getTime() - DAY), cancelReason: 'Customer can’t make it' }
+                ? { status: 'cancelled' as const, cancelledAt: new Date(startsAt.getTime() - DAY), cancelReason: 'Customer can’t make it', version: 2 }
                 : {}),
+              ...(moved ? { version: 2 } : {}),
               manageTokenHash: sha256(manageToken(manageSecret, id)),
               manageTokenExpiresAt: endsAt,
             },
           });
-          if (cancelled) continue; // the slot is free again
+          n++;
+          const shape = (status: string, start: Date, end: Date, version: number) => ({
+            status,
+            startsAt: start.toISOString(),
+            endsAt: end.toISOString(),
+            staffId: staff.id,
+            version,
+          });
+          const byCustomer = { actorType: 'customer' as const, actorId: customerId };
+          const created = source === 'widget' ? byCustomer : { actorType: 'user' as const, actorId: owner.id };
+          const entry = { businessId: business.id, entity: 'booking', entityId: id };
+          if (moved) {
+            // Booked a day earlier, then moved by the customer to the current time.
+            const was = [new Date(startsAt.getTime() - DAY), new Date(endsAt.getTime() - DAY)] as const;
+            const movedAt = new Date(Math.min(createdAt.getTime() + DAY, now.epochMilliseconds - 3_600_000));
+            audit.push(
+              { ...entry, ...created, action: 'booking.created', at: createdAt, afterJson: shape('confirmed', ...was, 1) },
+              { ...entry, ...byCustomer, action: 'booking.rescheduled', at: movedAt, beforeJson: shape('confirmed', ...was, 1), afterJson: shape('confirmed', startsAt, endsAt, 2) },
+            );
+          } else {
+            audit.push({ ...entry, ...created, action: 'booking.created', at: createdAt, afterJson: shape('confirmed', startsAt, endsAt, 1) });
+          }
+          if (cancelled) {
+            audit.push({
+              ...entry,
+              ...byCustomer,
+              action: 'booking.cancelled',
+              at: new Date(startsAt.getTime() - DAY),
+              beforeJson: shape('confirmed', startsAt, endsAt, 1),
+              afterJson: shape('cancelled', startsAt, endsAt, 2),
+            });
+            continue; // the slot is free again
+          }
           busy.set(staff.id, [
             ...(busy.get(staff.id) ?? []),
             { start: Temporal.Instant.from(slot.startsAt), end: Temporal.Instant.fromEpochMilliseconds(blockedEnd.getTime()) },
@@ -162,5 +204,6 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
         }
       }
     }
+    await tx.auditLog.createMany({ data: audit });
   }, { timeout: 60_000 });
 }

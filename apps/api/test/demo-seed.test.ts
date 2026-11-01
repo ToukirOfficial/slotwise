@@ -61,6 +61,21 @@ describe('demo seed date range', () => {
     expect(upcoming[0]!.startsAt.getTime()).toBeLessThan(ukMidnight(sunday.add({ days: 2 })).getTime());
   });
 
+  it('writes the audit trail the dashboard shows: every booking was booked, cancellations and one move are recorded', async () => {
+    const { now, bookings } = await seedAt('2026-11-01T12:00:00Z');
+    const entries = await t.prisma.auditLog.findMany({ where: { entity: 'booking' } });
+    const actions = (id: string) => entries.filter((e) => e.entityId === id).map((e) => e.action);
+
+    for (const b of bookings) expect(actions(b.id)[0]).toBe('booking.created');
+    for (const b of bookings.filter((x) => x.status === 'cancelled')) expect(actions(b.id)).toContain('booking.cancelled');
+    const moved = bookings.filter((b) => actions(b.id).includes('booking.rescheduled'));
+    expect(moved).toHaveLength(1);
+    expect(moved[0]!.startsAt.getTime()).toBeGreaterThan(now.getTime());
+    expect(moved[0]!.version).toBe(2);
+    // History never runs ahead of the clock.
+    for (const e of entries) expect(e.at.getTime()).toBeLessThanOrEqual(now.getTime());
+  });
+
   it.each([
     ['Monday morning', '2026-11-02T07:00:00Z'],
     ['Wednesday afternoon', '2026-11-04T15:00:00Z'],
