@@ -14,8 +14,9 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-export const startApp = async (): Promise<TestApp> => {
-  const app = await createApp(loadConfig());
+/** `env` overrides single settings for one test file, e.g. `{ PUBLIC_DEMO: 'true' }`. */
+export const startApp = async (env: NodeJS.ProcessEnv = {}): Promise<TestApp> => {
+  const app = await createApp(loadConfig({ ...process.env, ...env }));
   await app.init();
   const prisma = app.get(PrismaService);
   return { app, prisma, http: request(app.getHttpServer()), close: () => app.close() };

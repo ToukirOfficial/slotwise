@@ -14,6 +14,14 @@ const configSchema = z.object({
   MAIL_FROM: z.string().default('Slotwise <no-reply@slotwise.example>'),
   /** Redis key/queue prefix, so tests never touch dev queues. */
   QUEUE_PREFIX: z.string().default('slotwise'),
+  /**
+   * Public portfolio demo: sign-up, invite acceptance and password reset are switched off (403 DEMO_MODE)
+   * and SMTP is never used, even if SMTP_URL is set (mail goes to the log only).
+   */
+  PUBLIC_DEMO: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   /** Tests only: lets webhook tests post to a local receiver. Never set in production. */
   WEBHOOK_ALLOW_PRIVATE: z
     .enum(['true', 'false'])

@@ -14,6 +14,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CollisionDemo } from '@/components/landing/collision-demo';
 import { Logo } from '@/components/logo';
+import { isPublicDemo } from '@/lib/demo';
 
 export const metadata: Metadata = {
   title: { absolute: 'Slotwise: appointment booking that can’t double-book' },
@@ -35,7 +36,12 @@ const btn =
 const btnPrimary = `${btn} bg-primary text-primary-foreground hover:bg-[#1d46c4]`;
 const btnQuiet = `${btn} border border-input bg-card text-foreground hover:bg-muted`;
 
-function Header() {
+/** On the public demo there's no sign-up: the call to action opens the demo clinic instead. */
+const signupCta = (publicDemo: boolean) =>
+  publicDemo ? { href: '/login?demo=1', label: 'Try the live demo' } : { href: '/signup', label: 'Create an account' };
+
+function Header({ publicDemo }: { publicDemo: boolean }) {
+  const cta = signupCta(publicDemo);
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
@@ -55,8 +61,8 @@ function Header() {
           <Link href="/login" className="rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:text-foreground">
             Log in
           </Link>
-          <Link href="/signup" className={`${btnPrimary} h-8 px-3`}>
-            Create an account
+          <Link href={cta.href} className={`${btnPrimary} h-8 px-3`}>
+            {cta.label}
           </Link>
         </div>
       </div>
@@ -349,7 +355,8 @@ function Developers() {
   );
 }
 
-function SelfHost() {
+function SelfHost({ publicDemo }: { publicDemo: boolean }) {
+  const cta = signupCta(publicDemo);
   return (
     <section id="self-host" className="scroll-mt-16">
       <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_1fr]">
@@ -363,8 +370,8 @@ function SelfHost() {
             <a href={REPO_URL} className={btnPrimary}>
               <GitHubIcon className="size-4" /> View on GitHub
             </a>
-            <Link href="/signup" className={btnQuiet}>
-              Create an account
+            <Link href={cta.href} className={btnQuiet}>
+              {cta.label}
             </Link>
           </div>
         </div>
@@ -400,13 +407,14 @@ function Footer() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const publicDemo = await isPublicDemo();
   return (
     <>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2">
         Skip to content
       </a>
-      <Header />
+      <Header publicDemo={publicDemo} />
       <main id="main">
         <Hero />
         <Guarantees />
@@ -414,7 +422,7 @@ export default function Home() {
         <Embed />
         <Dashboard />
         <Developers />
-        <SelfHost />
+        <SelfHost publicDemo={publicDemo} />
       </main>
       <Footer />
     </>

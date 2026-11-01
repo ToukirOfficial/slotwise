@@ -20,6 +20,8 @@ A business adds one script tag and one HTML tag to its website. Its customers ca
 
 **Demo:** log in at `/login?demo=1` (`demo@slotwise.example` / `demo-physio-2026`), or book as a customer at
 `/b/demo-physio`. The demo clinic is reset every night and never sends email.
+Set `PUBLIC_DEMO=true` to run a public demo: sign-up, invites and password reset are switched off
+(403 `DEMO_MODE`, hidden in the UI) and mail only goes to the log.
 
 ---
 
@@ -229,7 +231,7 @@ Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server wit
 
 ## Tests
 
-`pnpm test` runs **157 tests**, all passing: 49 engine unit tests and 108 API integration tests against real
+`pnpm test` runs **164 tests**, all passing: 49 engine unit tests and 115 API integration tests against real
 PostgreSQL and Redis (no database mocks). They cover only what matters:
 
 | Area | Covers |
@@ -241,6 +243,7 @@ PostgreSQL and Redis (no database mocks). They cover only what matters:
 | Auth | Login, refresh rotation, reuse revokes the family, rate limit, single-use email tokens |
 | Tenancy and permissions | The matrix in hard problem 5, staff limits, API key scope, demo restrictions, erasure permissions |
 | Webhooks | Signature verification, private-IP rejection after DNS resolution, redirects not followed, retries logged |
+| Public demo mode | With `PUBLIC_DEMO=true`, sign-up, invite acceptance and password reset return 403 `DEMO_MODE`; SMTP is never used |
 
 ## Decisions
 

@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { DemoDisabled, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useSubmit } from '@/lib/forms';
 
-export default function SignupPage() {
+function SignupPageForm() {
   const router = useRouter();
   const [form, setForm] = useState({ businessName: '', name: '', email: '', password: '' });
   const { pending, formError, fields, run } = useSubmit();
@@ -59,4 +60,9 @@ export default function SignupPage() {
       </CardContent>
     </Card>
   );
+}
+
+/** Switched off on the public demo (the API refuses it with 403 DEMO_MODE too). */
+export default function SignupPage() {
+  return usePublicDemo() ? <DemoDisabled title="Create an account" /> : <SignupPageForm />;
 }

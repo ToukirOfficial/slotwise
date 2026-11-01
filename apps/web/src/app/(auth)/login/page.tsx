@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { DEMO_LOGIN, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,10 +16,11 @@ const safeNext = (next: string | null) => (next && next.startsWith('/') && !next
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  // /login?demo=1 fills in the public demo login (it's in the README too).
-  const demo = params.get('demo') === '1';
-  const [email, setEmail] = useState(demo ? 'demo@slotwise.example' : '');
-  const [password, setPassword] = useState(demo ? 'demo-physio-2026' : '');
+  const publicDemo = usePublicDemo();
+  // /login?demo=1 (or any visit on the public demo site) fills in the demo login (it's in the README too).
+  const demo = publicDemo || params.get('demo') === '1';
+  const [email, setEmail] = useState<string>(demo ? DEMO_LOGIN.email : '');
+  const [password, setPassword] = useState<string>(demo ? DEMO_LOGIN.password : '');
   const { pending, formError, run } = useSubmit();
 
   const submit = async (e: React.FormEvent) => {
@@ -42,14 +44,21 @@ function LoginForm() {
       <Button type="submit" disabled={pending}>
         {pending ? 'Logging in…' : 'Log in'}
       </Button>
-      <div className="flex justify-between text-sm">
-        <Link href="/forgot-password" className="underline underline-offset-4">
-          Forgot password?
-        </Link>
-        <Link href="/signup" className="underline underline-offset-4">
-          Create an account
-        </Link>
-      </div>
+      {publicDemo ? (
+        <p className="text-sm text-muted-foreground">
+          Public demo: the login is filled in for you. Sign-up and password reset are switched off, and the demo clinic
+          resets every night.
+        </p>
+      ) : (
+        <div className="flex justify-between text-sm">
+          <Link href="/forgot-password" className="underline underline-offset-4">
+            Forgot password?
+          </Link>
+          <Link href="/signup" className="underline underline-offset-4">
+            Create an account
+          </Link>
+        </div>
+      )}
     </form>
   );
 }

@@ -19,6 +19,8 @@ import { clearAuthCookies, readCookie, REFRESH_COOKIE, setAuthCookies } from '..
 import { sha256 } from '../common/crypto.js';
 import { RateLimiter } from '../common/rate-limit.js';
 import { Returns } from '../common/schema.js';
+import { demoMode } from '../common/errors.js';
+import { APP_CONFIG, type AppConfig } from '../config.js';
 import { AuthService } from './auth.service.js';
 import { SessionsService } from './sessions.service.js';
 
@@ -31,7 +33,13 @@ export class AuthController {
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(SessionsService) private readonly sessions: SessionsService,
     @Inject(RateLimiter) private readonly limiter: RateLimiter,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
+
+  /** PUBLIC_DEMO: refuse before any rate limit, lookup or email. */
+  private assertNotDemo(): void {
+    if (this.config.PUBLIC_DEMO) throw demoMode();
+  }
 
   @Public()
   @Post('register')
@@ -41,6 +49,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Me> {
+    this.assertNotDemo();
     await this.limiter.hit(`register:ip:${req.ip}`, 3, 60);
     const tokens = await this.auth.register(body);
     setAuthCookies(res, tokens.access, tokens.refresh);
@@ -109,6 +118,7 @@ export class AuthController {
   @Post('forgot-password')
   @Returns(okSchema)
   async forgotPassword(@Body({ schema: forgotPasswordBodySchema }) body: { email: string }, @Req() req: Request) {
+    this.assertNotDemo();
     await this.limiter.hit(`forgot:ip:${req.ip}`, 5, 15 * 60);
     await this.limiter.hit(`forgot:email:${sha256(body.email)}`, 3, 15 * 60);
     await this.auth.forgotPassword(body.email);
@@ -122,6 +132,7 @@ export class AuthController {
     @Body({ schema: resetPasswordBodySchema }) body: { token: string; password: string },
     @Req() req: Request,
   ) {
+    this.assertNotDemo();
     await this.limiter.hit(`token:ip:${req.ip}`, 20, 60);
     await this.auth.resetPassword(body.token, body.password);
     return OK;
@@ -135,6 +146,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Me> {
+    this.assertNotDemo();
     await this.limiter.hit(`token:ip:${req.ip}`, 20, 60);
     const tokens = await this.auth.acceptInvite(body.token, body.password);
     setAuthCookies(res, tokens.access, tokens.refresh);

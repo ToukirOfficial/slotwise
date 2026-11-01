@@ -49,6 +49,7 @@
     "SMTP_URL",
     "MAIL_FROM",
     "QUEUE_PREFIX",
+    "PUBLIC_DEMO",
     "NODE_ENV"
   ]
 }

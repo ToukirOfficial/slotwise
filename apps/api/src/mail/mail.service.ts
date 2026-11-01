@@ -18,18 +18,21 @@ const MAIL_DIR = new URL('../../../../tmp/mail/', import.meta.url);
 /**
  * Sends mail through SMTP when SMTP_URL is set (production). Otherwise nothing is sent: each message is
  * written to tmp/mail/*.eml so the .ics can be opened, and a line goes to the log (no address, no content).
+ * PUBLIC_DEMO: SMTP is never used and nothing is written to disk; each message is only a log line.
  */
 @Injectable()
 export class MailService {
   private readonly log = new Logger('Mail');
   private readonly transport: Transporter;
   private readonly toFile: boolean;
+  private readonly logOnly: boolean;
   /** Test hook: messages "sent" in this process (test env only). */
   readonly outbox: MailMessage[] = [];
 
   constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {
-    this.toFile = !config.SMTP_URL;
-    this.transport = this.toFile
+    this.logOnly = config.PUBLIC_DEMO;
+    this.toFile = !config.SMTP_URL && !this.logOnly;
+    this.transport = this.toFile || this.logOnly
       ? nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'unix' })
       : nodemailer.createTransport(config.SMTP_URL);
   }
@@ -51,7 +54,9 @@ export class MailService {
       this.outbox.push(msg);
       return;
     }
-    if (this.toFile) {
+    if (this.logOnly) {
+      this.log.log(`mail not sent: public demo (${label})`);
+    } else if (this.toFile) {
       await mkdir(MAIL_DIR, { recursive: true });
       const file = new URL(`${Date.now()}-${label}.eml`, MAIL_DIR);
       await writeFile(file, (info as { message: Buffer }).message);

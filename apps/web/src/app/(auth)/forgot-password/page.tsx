@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { DemoDisabled, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useSubmit } from '@/lib/forms';
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordPageForm() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const { pending, formError, run } = useSubmit();
@@ -47,4 +48,9 @@ export default function ForgotPasswordPage() {
       </CardContent>
     </Card>
   );
+}
+
+/** Switched off on the public demo (the API refuses it with 403 DEMO_MODE too). */
+export default function ForgotPasswordPage() {
+  return usePublicDemo() ? <DemoDisabled title="Reset your password" /> : <ForgotPasswordPageForm />;
 }

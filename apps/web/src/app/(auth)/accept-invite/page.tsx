@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { DemoDisabled, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -40,10 +41,15 @@ function AcceptForm({ token }: { token: string }) {
   );
 }
 
-export default function AcceptInvitePage() {
+function AcceptInvitePageForm() {
   return (
     <TokenPage title="Set up your login" description="You’ve been invited to see your diary.">
       {(token) => <AcceptForm token={token} />}
     </TokenPage>
   );
+}
+
+/** Switched off on the public demo (the API refuses it with 403 DEMO_MODE too). */
+export default function AcceptInvitePage() {
+  return usePublicDemo() ? <DemoDisabled title="Set up your login" /> : <AcceptInvitePageForm />;
 }

@@ -26,6 +26,10 @@ export const notFound = (what = 'Not found'): AppError => new AppError(404, Erro
 export const forbidden = (msg = 'You don’t have permission to do that.'): AppError =>
   new AppError(403, ErrorCode.FORBIDDEN, msg);
 
+/** Public demo (PUBLIC_DEMO=true): the action is switched off for everyone. */
+export const demoMode = (): AppError =>
+  new AppError(403, ErrorCode.DEMO_MODE, 'This is a public demo, so sign-up, invites and password reset are switched off.');
+
 const DEFAULT_CODES: Record<number, ErrorCode> = {
   400: ErrorCode.VALIDATION_FAILED,
   401: ErrorCode.UNAUTHENTICATED,

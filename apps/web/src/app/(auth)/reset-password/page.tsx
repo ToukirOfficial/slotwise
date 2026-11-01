@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { DemoDisabled, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -49,6 +50,11 @@ function ResetForm({ token }: { token: string }) {
   );
 }
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageForm() {
   return <TokenPage title="Choose a new password">{(token) => <ResetForm token={token} />}</TokenPage>;
+}
+
+/** Switched off on the public demo (the API refuses it with 403 DEMO_MODE too). */
+export default function ResetPasswordPage() {
+  return usePublicDemo() ? <DemoDisabled title="Choose a new password" /> : <ResetPasswordPageForm />;
 }

@@ -1,6 +1,8 @@
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { PublicDemoProvider } from '@/components/demo-mode';
 import { Logo } from '@/components/logo';
+import { isPublicDemo } from '@/lib/demo';
 
 const POINTS = [
   'Customers book from your website or your own booking page',
@@ -8,7 +10,8 @@ const POINTS = [
   'Confirmations and reminders go out on their own',
 ];
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const publicDemo = await isPublicDemo();
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <aside className="relative hidden overflow-hidden bg-[var(--graphite)] p-10 text-white lg:flex lg:flex-col lg:justify-between">
@@ -38,7 +41,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Link href="/" className="lg:hidden" aria-label="Slotwise home">
           <Logo />
         </Link>
-        <div className="w-full max-w-sm">{children}</div>
+        <div className="w-full max-w-sm">
+          <PublicDemoProvider value={publicDemo}>{children}</PublicDemoProvider>
+        </div>
       </main>
     </div>
   );
