@@ -75,6 +75,7 @@ A business adds one script tag and one HTML tag to its website. Its customers ca
 - [Security](#security)
 - [Tests](#tests)
 - [Decisions](#decisions)
+- [Contributing](#contributing)
 
 ## Run it locally
 
@@ -331,6 +332,11 @@ Short notes on the non-obvious choices, in [`docs/decisions/`](docs/decisions):
 [outbox and worker](docs/decisions/0005-outbox-and-worker.md) ·
 [Web Component widget](docs/decisions/0006-web-component-widget.md) ·
 [webhook security](docs/decisions/0007-webhook-security.md)
+
+## Contributing
+
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Please report security issues
+privately as described in [SECURITY.md](SECURITY.md). Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

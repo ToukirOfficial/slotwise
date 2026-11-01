@@ -15,7 +15,8 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "screenshots": "node scripts/screenshots.mjs",
-    "demo-gif": "node scripts/demo-gif.mjs"
+    "demo-gif": "node scripts/demo-gif.mjs",
+    "social-preview": "node scripts/social-preview.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
