@@ -98,9 +98,13 @@ ls -1dt "$APP_DIR/releases/"*/ | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -
 REMOTE_SCRIPT
 
 echo "▸ Checking https://$DOMAIN"
-sleep 3
-web=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/")
-health=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/api/health")
+# The API needs a few seconds to boot; until then the web app's /api proxy answers 500. Wait up to 30 s.
+for _ in $(seq 1 15); do
+  sleep 2
+  web=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/")
+  health=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/api/health")
+  [ "$web" = "200" ] && [ "$health" = "200" ] && break
+done
 if [ "$web" = "200" ] && [ "$health" = "200" ]; then
   echo "✓ Deployed $RELEASE — https://$DOMAIN is up (web $web, health $health)"
 else
