@@ -200,7 +200,7 @@ function WidgetPreview() {
   return (
     <div aria-hidden className="rounded-lg border bg-card p-4 text-sm shadow-[0_16px_40px_-24px_rgba(21,24,29,0.35)]">
       <p className="font-semibold">Demo Physio Clinic</p>
-      <p className="text-[13px] text-muted-foreground">Initial assessment, 45 min, £60</p>
+      <p className="text-[13px] text-muted-foreground">Initial assessment, 45 min, £65</p>
       <div className="mt-4 grid grid-cols-5 gap-1.5 text-center text-[12px]">
         {['Mon 2', 'Tue 3', 'Wed 4', 'Thu 5', 'Fri 6'].map((d, i) => (
           <span key={d} className={`rounded-md border py-1.5 ${i === 1 ? 'border-primary bg-accent font-medium text-accent-foreground' : ''}`}>

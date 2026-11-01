@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Form } from '@/components/form';
 import { DemoDisabled, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ function ResetForm({ token }: { token: string }) {
       </p>
     );
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <Form onSubmit={submit} className="grid gap-4">
       <FormError message={formError} />
       <Field
         label="New password"
@@ -46,7 +47,7 @@ function ResetForm({ token }: { token: string }) {
       <Button type="submit" disabled={pending}>
         {pending ? 'Saving…' : 'Set new password'}
       </Button>
-    </form>
+    </Form>
   );
 }
 

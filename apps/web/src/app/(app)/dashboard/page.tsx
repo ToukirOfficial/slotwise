@@ -3,7 +3,7 @@
 import type { Booking, Staff } from '@slotwise/shared';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/app-shell';
 import { BookingCard } from '@/components/booking-card';
 import { useMe } from '@/components/me';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VerifyBanner } from '@/components/verify-banner';
-import { useBookingsInRange } from '@/lib/bookings';
+import { firstBookingWeek, useBookingsInRange } from '@/lib/bookings';
 import { addDays, formatLocalDate, mondayOf, ukDateOf, ukToday } from '@/lib/format';
 import { useApi } from '@/lib/use-api';
 import { cn } from '@/lib/utils';
@@ -61,6 +61,18 @@ export default function CalendarPage() {
   const [view, setView] = useState<View>('week');
   const [date, setDate] = useState(ukToday());
   const [staffId, setStaffId] = useState('all');
+  // Open on this week if it has bookings, otherwise on the next week that does (until then, show loading).
+  const [opening, setOpening] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    firstBookingWeek(mondayOf(ukToday()))
+      .then((d) => !cancelled && d && setDate(d))
+      .catch(() => undefined) // fall back to this week
+      .finally(() => !cancelled && setOpening(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const staff = useApi<{ items: Staff[] }>(isOwner ? '/staff?limit=100' : null);
 
   const from = view === 'week' ? mondayOf(date) : date;
@@ -128,7 +140,7 @@ export default function CalendarPage() {
 
       {error ? (
         <ErrorState error={error} />
-      ) : loading && !items ? (
+      ) : opening || (loading && !items) ? (
         <LoadingState />
       ) : items && items.length === 0 && view === 'week' ? (
         <EmptyState title="No bookings this week">

@@ -4,6 +4,7 @@ import type { Booking, Service, Slot, Staff } from '@slotwise/shared';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { PageHeader } from '@/components/app-shell';
 import { Field, FormError } from '@/components/field';
 import { useMe } from '@/components/me';
@@ -61,7 +62,7 @@ export default function NewBookingPage() {
   return (
     <>
       <PageHeader title="New booking" description="For a phone or walk-in customer." />
-      <form onSubmit={submit} className="grid max-w-3xl gap-6">
+      <Form onSubmit={submit} className="grid max-w-3xl gap-6">
         <FormError message={formError} />
         <Card>
           <CardHeader>
@@ -151,7 +152,7 @@ export default function NewBookingPage() {
             {pending ? 'Booking…' : slot ? `Book ${formatUkDateTime(slot.startsAt)}` : 'Pick a time first'}
           </Button>
         </div>
-      </form>
+      </Form>
     </>
   );
 }

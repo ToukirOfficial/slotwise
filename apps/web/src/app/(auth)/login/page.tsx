@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { Form } from '@/components/form';
 import { DEMO_LOGIN, usePublicDemo } from '@/components/demo-mode';
 import { Field, FormError } from '@/components/field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useSubmit } from '@/lib/forms';
+import { useHydrated } from '@/lib/use-hydrated';
 
 /** Only same-site paths, so ?next= can't send people to another site. */
 const safeNext = (next: string | null) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard');
@@ -22,6 +24,8 @@ function LoginForm() {
   const [email, setEmail] = useState<string>(demo ? DEMO_LOGIN.email : '');
   const [password, setPassword] = useState<string>(demo ? DEMO_LOGIN.password : '');
   const { pending, formError, run } = useSubmit();
+  // <Form> disables the fields until hydration; the button also says so, since it's the first thing people click.
+  const hydrated = useHydrated();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +34,7 @@ function LoginForm() {
   };
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <Form onSubmit={submit} className="grid gap-4">
       <FormError message={formError} />
       <Field label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       <Field
@@ -41,8 +45,8 @@ function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Button type="submit" disabled={pending}>
-        {pending ? 'Logging in…' : 'Log in'}
+      <Button type="submit" disabled={!hydrated || pending} aria-busy={!hydrated || pending}>
+        {!hydrated ? 'Loading…' : pending ? 'Logging in…' : 'Log in'}
       </Button>
       {publicDemo ? (
         <p className="text-sm text-muted-foreground">
@@ -59,7 +63,7 @@ function LoginForm() {
           </Link>
         </div>
       )}
-    </form>
+    </Form>
   );
 }
 

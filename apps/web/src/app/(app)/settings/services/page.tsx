@@ -4,6 +4,7 @@ import type { Service } from '@slotwise/shared';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { Field, FormError } from '@/components/field';
 import { OwnerOnly } from '@/components/owner-only';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
@@ -53,7 +54,7 @@ function ServiceDialog({ service, onClose, onDone }: { service: Service | 'new';
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <form onSubmit={submit} className="grid gap-4">
+        <Form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{initial ? 'Edit service' : 'Add service'}</DialogTitle>
           </DialogHeader>
@@ -78,7 +79,7 @@ function ServiceDialog({ service, onClose, onDone }: { service: Service | 'new';
               {pending ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

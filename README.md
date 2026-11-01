@@ -231,7 +231,7 @@ Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server wit
 
 ## Tests
 
-`pnpm test` runs **164 tests**, all passing: 49 engine unit tests and 115 API integration tests against real
+`pnpm test` runs **171 tests**, all passing: 49 engine unit tests, 3 web tests and 119 API integration tests against real
 PostgreSQL and Redis (no database mocks). They cover only what matters:
 
 | Area | Covers |
@@ -243,7 +243,8 @@ PostgreSQL and Redis (no database mocks). They cover only what matters:
 | Auth | Login, refresh rotation, reuse revokes the family, rate limit, single-use email tokens |
 | Tenancy and permissions | The matrix in hard problem 5, staff limits, API key scope, demo restrictions, erasure permissions |
 | Webhooks | Signature verification, private-IP rejection after DNS resolution, redirects not followed, retries logged |
-| Public demo mode | With `PUBLIC_DEMO=true`, sign-up, invite acceptance and password reset return 403 `DEMO_MODE`; SMTP is never used |
+| Public demo | With `PUBLIC_DEMO=true`, sign-up, invite acceptance and password reset return 403 `DEMO_MODE`; SMTP is never used; the seed covers the past 7 days and next 14, so the current week is never empty |
+| Forms | Every form posts with `method="post"` and stays disabled until hydrated, so form data can never end up in a URL |
 
 ## Decisions
 

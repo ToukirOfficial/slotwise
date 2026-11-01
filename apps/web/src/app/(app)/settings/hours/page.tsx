@@ -4,6 +4,7 @@ import { type DateOverride, hhmmToMinutes, minutesToHhmm, type Staff, type Weekl
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { Field, FormError } from '@/components/field';
 import { useMe } from '@/components/me';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
@@ -52,7 +53,7 @@ function WeekEditor({ staffId, initial }: { staffId: string; initial: WeeklyHour
   };
 
   return (
-    <form onSubmit={save} className="grid gap-4">
+    <Form onSubmit={save} className="grid gap-4">
       <FormError message={formError} />
       <ul className="divide-y">
         {DAYS.map((day, i) => {
@@ -122,7 +123,7 @@ function WeekEditor({ staffId, initial }: { staffId: string; initial: WeeklyHour
           {pending ? 'Saving…' : 'Save weekly hours'}
         </Button>
       </div>
-    </form>
+    </Form>
   );
 }
 
@@ -153,7 +154,7 @@ function Overrides({ staffId }: { staffId: string }) {
 
   return (
     <div className="grid gap-6">
-      <form onSubmit={add} className="grid gap-4 rounded-md border p-4">
+      <Form onSubmit={add} className="grid gap-4 rounded-md border p-4">
         <FormError message={formError} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Date" type="date" required min={ukToday()} value={date} onChange={(e) => setDate(e.target.value)} error={fields.date} />
@@ -174,7 +175,7 @@ function Overrides({ staffId }: { staffId: string }) {
             {pending ? 'Adding…' : 'Add'}
           </Button>
         </div>
-      </form>
+      </Form>
       {error ? (
         <ErrorState error={error} onRetry={reload} />
       ) : loading && !data ? (

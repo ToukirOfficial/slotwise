@@ -3,6 +3,7 @@
 import type { ApiKey, CreatedApiKey } from '@slotwise/shared';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { Field, FormError } from '@/components/field';
 import { useMe } from '@/components/me';
 import { OwnerOnly } from '@/components/owner-only';
@@ -61,14 +62,14 @@ export default function ApiKeysPage() {
             {me.business.isDemo ? (
               <p className="text-sm text-muted-foreground">API keys are switched off for the demo business.</p>
             ) : (
-              <form onSubmit={create} className="flex flex-wrap items-end gap-3">
+              <Form onSubmit={create} className="flex flex-wrap items-end gap-3">
                 <div className="min-w-56 flex-1">
                   <Field label="Name" placeholder="e.g. CRM sync" required value={name} onChange={(e) => setName(e.target.value)} error={fields.name} />
                 </div>
                 <Button type="submit" disabled={pending}>
                   {pending ? 'Creating…' : 'Create key'}
                 </Button>
-              </form>
+              </Form>
             )}
             <FormError message={formError} />
             {created && <SecretReveal title={`Key “${created.name}” created`} value={created.key} onDismiss={() => setCreated(undefined)} />}

@@ -13,6 +13,14 @@ export const DEMO_PASSWORD = 'demo-physio-2026';
 
 const ZONE = 'Europe/London';
 const H = (h: number, m = 0) => h * 60 + m;
+/** Index into a list with a possibly negative number. */
+const pick = <T>(list: T[], i: number): T => list[((i % list.length) + list.length) % list.length]!;
+
+/** Days seeded around today: a week of history (so the current week is never empty) and a fortnight ahead. */
+export const DEMO_PAST_DAYS = 7;
+export const DEMO_FUTURE_DAYS = 14;
+/** Which past bookings (in creation order) are cancelled; the rest of the past ones happened. */
+const CANCELLED_PAST = new Set([3, 10]);
 
 // Fictional people only: example.com addresses and Ofcom's drama phone range.
 const CUSTOMERS = ['Sam Taylor', 'Jordan Lee', 'Chris Patel', 'Morgan Davies', 'Jamie Wilson', 'Riley Brown', 'Casey Green', 'Robin Hall'].map(
@@ -23,7 +31,7 @@ const CUSTOMERS = ['Sam Taylor', 'Jordan Lee', 'Chris Patel', 'Morgan Davies', '
   }),
 );
 
-/** Deletes and recreates "Demo Physio Clinic" with staff, services, hours and a fortnight of bookings. */
+/** Deletes and recreates "Demo Physio Clinic" with staff, services, hours, last week's bookings and the next fortnight's. */
 export async function seedDemo(prisma: PrismaService, manageSecret: string, now = Temporal.Now.instant()): Promise<void> {
   const existing = await prisma.business.findUnique({ where: { slug: DEMO_SLUG } });
   if (existing) {
@@ -89,19 +97,22 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
       CUSTOMERS.map((c) => tx.customer.create({ data: { businessId: business.id, ...c, emailNormalized: c.email } })),
     );
 
-    // A fortnight of bookings, placed with the real slot engine so they respect hours and never overlap.
+    // Last week (mostly done, a couple cancelled), today and the next fortnight, placed with the real slot
+    // engine so they respect hours and never overlap. Past days are planned as if from the day before.
     const busy = new Map<string, { start: Temporal.Instant; end: Temporal.Instant }[]>();
     let n = 0;
-    for (let d = 1; d <= 14; d++) {
+    let past = 0;
+    for (let d = -DEMO_PAST_DAYS; d <= DEMO_FUTURE_DAYS; d++) {
       const date = today.add({ days: d }).toString();
+      const planFrom = d < 0 ? today.add({ days: d - 1 }).toZonedDateTime(ZONE).toInstant() : now;
       for (const [staff, svcs] of delivers) {
         for (let k = 0; k < 2; k++) {
-          const service = svcs[(d + k) % svcs.length]!;
+          const service = pick(svcs, d + k);
           const [day] = findSlots({
             zone: ZONE,
             fromDate: date,
             toDate: date,
-            now,
+            now: planFrom,
             weeklyHours: hours.get(staff.id) ?? [],
             overrides: staff.id === priya.id ? [{ date: nextFriday.toString(), closed: true, startMin: null, endMin: null }] : [],
             busy: busy.get(staff.id) ?? [],
@@ -110,11 +121,13 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
           });
           const slots = day?.slots ?? [];
           if (slots.length === 0 || (d + k) % 3 === 0) continue; // leave gaps so the diary has free time
-          const slot = slots[(d * 5 + k * 11) % slots.length]!;
+          const slot = pick(slots, d * 5 + k * 11);
           const startsAt = new Date(slot.startsAt);
           const endsAt = new Date(slot.endsAt);
           const blockedEnd = new Date(endsAt.getTime() + service.bufferAfterMin * 60_000);
           const id = uuidv7();
+          const cancelled = d < 0 && CANCELLED_PAST.has(past++);
+          const DAY = 86_400_000;
           await tx.booking.create({
             data: {
               id,
@@ -132,10 +145,16 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
               bufferAfterMin: service.bufferAfterMin,
               pricePence: service.pricePence,
               source: n % 3 === 0 ? 'dashboard' : 'widget',
+              // Booked a few days ahead, like real customers.
+              createdAt: new Date(Math.min(startsAt.getTime() - (2 + (n % 5)) * DAY, now.epochMilliseconds)),
+              ...(cancelled
+                ? { status: 'cancelled' as const, cancelledAt: new Date(startsAt.getTime() - DAY), cancelReason: 'Customer can’t make it' }
+                : {}),
               manageTokenHash: sha256(manageToken(manageSecret, id)),
               manageTokenExpiresAt: endsAt,
             },
           });
+          if (cancelled) continue; // the slot is free again
           busy.set(staff.id, [
             ...(busy.get(staff.id) ?? []),
             { start: Temporal.Instant.from(slot.startsAt), end: Temporal.Instant.fromEpochMilliseconds(blockedEnd.getTime()) },

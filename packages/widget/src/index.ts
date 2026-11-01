@@ -397,7 +397,8 @@ class SlotwiseBooking extends HTMLElement {
       ),
       h(
         'form',
-        { onsubmit: (e: Event) => void this.submit(e) },
+        // method=post: even a native submit could never put the customer's details in the host page's URL.
+        { method: 'post', onsubmit: (e: Event) => void this.submit(e) },
         ...field('name', 'Name', 'text', 'name'),
         ...field('email', 'Email', 'email', 'email'),
         ...field('phone', 'Phone', 'tel', 'tel'),

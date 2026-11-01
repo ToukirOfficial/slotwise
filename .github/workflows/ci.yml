@@ -10,11 +10,17 @@ permissions:
 
 jobs:
   check:
+    name: check (PostgreSQL ${{ matrix.postgres }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # 16 is what production runs; 18 is the latest.
+        postgres: ['16', '18']
     services:
       postgres:
-        image: postgres:18
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: slotwise
           POSTGRES_PASSWORD: slotwise

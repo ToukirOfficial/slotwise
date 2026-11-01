@@ -3,6 +3,7 @@
 import type { Booking } from '@slotwise/shared';
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { mondayOf, ukDateOf } from './format';
 
 type Page = { items: Booking[]; nextCursor: string | null };
 
@@ -40,4 +41,15 @@ export function useBookingsInRange(from: string, to: string, staffId: string) {
     error: state?.key === key ? state.error : undefined,
     loading: state?.key !== key,
   };
+}
+
+/**
+ * The Monday of the first week, from `monday` on, with a confirmed booking (null when there are none).
+ * The list is sorted by start time, so one booking is enough.
+ */
+export async function firstBookingWeek(monday: string): Promise<string | null> {
+  const qs = new URLSearchParams({ from: monday, status: 'confirmed', limit: '1' });
+  const page = await api<Page>(`/bookings?${qs.toString()}`);
+  const first = page.items[0];
+  return first ? mondayOf(ukDateOf(first.startsAt)) : null;
 }

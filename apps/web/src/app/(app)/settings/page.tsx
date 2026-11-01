@@ -3,6 +3,7 @@
 import { type Business, SLOT_STEPS } from '@slotwise/shared';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { Field, FormError } from '@/components/field';
 import { useMe } from '@/components/me';
 import { OwnerOnly } from '@/components/owner-only';
@@ -39,7 +40,7 @@ function BusinessForm({ initial, onSaved }: { initial: Business; onSaved: (b: Bu
   };
 
   return (
-    <form onSubmit={save} className="grid gap-6 max-w-2xl">
+    <Form onSubmit={save} className="grid gap-6 max-w-2xl">
       <FormError message={formError} />
       <Card>
         <CardHeader>
@@ -139,7 +140,7 @@ function BusinessForm({ initial, onSaved }: { initial: Business; onSaved: (b: Bu
           {pending ? 'Saving…' : 'Save changes'}
         </Button>
       </div>
-    </form>
+    </Form>
   );
 }
 

@@ -4,6 +4,7 @@ import type { Service, Staff } from '@slotwise/shared';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { Field, FormError } from '@/components/field';
 import { useMe } from '@/components/me';
 import { OwnerOnly } from '@/components/owner-only';
@@ -48,7 +49,7 @@ function ServicesDialog({ staff, onClose, onDone }: { staff: Staff; onClose: () 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <form onSubmit={submit} className="grid gap-4">
+        <Form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Services {staff.displayName} delivers</DialogTitle>
           </DialogHeader>
@@ -78,7 +79,7 @@ function ServicesDialog({ staff, onClose, onDone }: { staff: Staff; onClose: () 
               {pending ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
@@ -114,7 +115,7 @@ function StaffDialog({ state, onClose, onDone }: { state: DialogState; onClose: 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <form onSubmit={submit} className="grid gap-4">
+        <Form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{config.title}</DialogTitle>
             {state.kind === 'invite' && (
@@ -139,7 +140,7 @@ function StaffDialog({ state, onClose, onDone }: { state: DialogState; onClose: 
               {pending ? 'Saving…' : config.button}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

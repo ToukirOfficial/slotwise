@@ -3,6 +3,7 @@
 import { type CreatedWebhook, WEBHOOK_EVENTS, type WebhookDelivery, type WebhookEndpoint } from '@slotwise/shared';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Form } from '@/components/form';
 import { Field, FormError } from '@/components/field';
 import { useMe } from '@/components/me';
 import { OwnerOnly } from '@/components/owner-only';
@@ -108,7 +109,7 @@ export default function WebhooksPage() {
             {me.business.isDemo ? (
               <p className="text-sm text-muted-foreground">Webhooks are switched off for the demo business.</p>
             ) : (
-              <form onSubmit={create} className="grid gap-3">
+              <Form onSubmit={create} className="grid gap-3">
                 <Field label="Endpoint URL" type="url" placeholder="https://example.com/slotwise" required value={url} onChange={(e) => setUrl(e.target.value)} error={fields.url} />
                 <fieldset className="flex flex-wrap gap-4">
                   <legend className="mb-2 text-sm font-medium">Events</legend>
@@ -133,7 +134,7 @@ export default function WebhooksPage() {
                     {pending ? 'Adding…' : 'Add endpoint'}
                   </Button>
                 </div>
-              </form>
+              </Form>
             )}
             <FormError message={formError} />
             {created && <SecretReveal title="Signing secret" value={created.secret} onDismiss={() => setCreated(undefined)} />}
