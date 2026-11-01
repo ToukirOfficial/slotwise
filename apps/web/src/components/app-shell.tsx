@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-[1180px]">
           {me.business.isDemo && (
             <p className="mb-5 flex flex-wrap items-center gap-x-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-              <span className="font-medium">Public demo.</span> Changes reset every night and no emails are sent.
+              <span className="font-medium">Public demo.</span> Changes are reset automatically and no emails are sent.
             </p>
           )}
           {children}

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type CreateServiceBody, ErrorCode, type Service, type UpdateServiceBody } from '@slotwise/shared';
 import { PublicCache } from '../business/public-cache.js';
 import type { AuthContext } from '../common/auth.js';
+import { assertDemoRoom } from '../common/demo-limits.js';
 import { AppError, notFound } from '../common/errors.js';
 import { idPage, toPage } from '../common/pagination.js';
 import { Prisma } from '../generated/prisma/client.js';
@@ -43,6 +44,7 @@ export class ServicesService {
   }
 
   async create(auth: AuthContext, body: CreateServiceBody): Promise<Service> {
+    if (auth.isDemo) await assertDemoRoom(this.prisma, auth.businessId, 'services');
     const s = await this.prisma.service.create({ data: { ...body, businessId: auth.businessId }, include });
     await this.cache.forgetBusiness(auth.businessId);
     return toDto(s);

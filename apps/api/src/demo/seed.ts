@@ -5,6 +5,7 @@ import { manageToken } from '../bookings/manage-token.js';
 import { sha256 } from '../common/crypto.js';
 import { uuidv7 } from '../common/ids.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import type { PublicCache } from '../business/public-cache.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 /** Public demo login (shown in the README). The business is flagged is_demo: no email, keys or webhooks. */
@@ -206,4 +207,13 @@ export async function seedDemo(prisma: PrismaService, manageSecret: string, now 
     }
     await tx.auditLog.createMany({ data: audit });
   }, { timeout: 60_000 });
+}
+
+/**
+ * Re-seeds the demo and clears its cached public profile. The seed recreates every service and staff member
+ * with new ids, so without this the widget would offer stale ids (and 404 on booking) until the cache expired.
+ */
+export async function reseedDemo(prisma: PrismaService, manageSecret: string, cache: Pick<PublicCache, 'forget'>): Promise<void> {
+  await seedDemo(prisma, manageSecret);
+  await cache.forget(DEMO_SLUG);
 }

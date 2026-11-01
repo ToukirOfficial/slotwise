@@ -11,6 +11,7 @@ import { AuditService, type Actor } from '../audit/audit.service.js';
 import { type Lengths, AvailabilityService } from '../availability/availability.service.js';
 import { APP_CONFIG, type AppConfig } from '../config.js';
 import { sha256 } from '../common/crypto.js';
+import { assertDemoRoom } from '../common/demo-limits.js';
 import { AppError, notFound } from '../common/errors.js';
 import { uuidv7 } from '../common/ids.js';
 import { fromDateColumn, toInstant } from '../common/time.js';
@@ -114,6 +115,12 @@ export class BookingsService {
               `You already have ${MAX_FUTURE_PER_CUSTOMER} upcoming bookings here. Please contact the business.`,
             );
           }
+        }
+
+        if (business.isDemo) {
+          await assertDemoRoom(tx, business.id, 'bookings');
+          const known = await tx.customer.count({ where: { businessId: business.id, emailNormalized: email } });
+          if (!known) await assertDemoRoom(tx, business.id, 'customers'); // only a new customer adds a row
         }
 
         // Matched by email within the business; name and phone are refreshed on every booking.

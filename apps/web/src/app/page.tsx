@@ -70,7 +70,7 @@ function Header({ publicDemo }: { publicDemo: boolean }) {
   );
 }
 
-function Hero() {
+function Hero({ publicDemo }: { publicDemo: boolean }) {
   return (
     <section className="relative overflow-hidden border-b">
       <div className="diary-ruling pointer-events-none absolute inset-0 opacity-50 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
@@ -95,7 +95,7 @@ function Hero() {
             </Link>
           </div>
           <p className="mt-4 text-[13px] text-muted-foreground">
-            The demo resets every night and never sends email.
+            The demo resets every {publicDemo ? 'hour' : 'night'} and never sends email.
           </p>
         </div>
         <div>
@@ -424,7 +424,7 @@ export default async function Home() {
       </a>
       <Header publicDemo={publicDemo} />
       <main id="main">
-        <Hero />
+        <Hero publicDemo={publicDemo} />
         <Guarantees />
         <ClockChanges />
         <Embed />

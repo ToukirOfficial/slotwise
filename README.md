@@ -17,13 +17,13 @@
 > - **[Book as a customer](https://slotwise.toukirahmedrony.com/b/demo-physio)** on the clinic's public booking page.
 > - **[Read the API docs](https://slotwise.toukirahmedrony.com/api/docs)** (OpenAPI, every error has a stable `errorCode`).
 >
-> The demo clinic resets every night and never sends email.
+> The demo clinic resets every hour and never sends email.
 
 ### Proof
 
 | What | Result | Where it comes from |
 |---|---|---|
-| Tests | **176 passing** (49 engine, 7 web, 120 API) on **PostgreSQL 16 and 18** | [CI](https://github.com/ToukirOfficial/slotwise/actions/workflows/ci.yml), on every push |
+| Tests | **183 passing** (49 engine, 7 web, 127 API) on **PostgreSQL 16 and 18** | [CI](https://github.com/ToukirOfficial/slotwise/actions/workflows/ci.yml), on every push |
 | Double-booking | **100 parallel requests** for one slot → **1 booking, 99 rejected** (409 `SLOT_TAKEN`) | [`double-booking.test.ts`](apps/api/test/double-booking.test.ts), real PostgreSQL |
 | Slot engine | **~10 ms** for one staff member over 30 days | `pnpm --filter @slotwise/engine bench` |
 | Availability endpoint | **~16 ms** median locally, **~37 ms** on the live server (HTTP + database) | Same query on the demo data |
@@ -307,7 +307,7 @@ Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server wit
 
 ## Tests
 
-`pnpm test` runs **176 tests**, all passing: 49 engine unit tests, 7 web tests and 120 API integration tests against real
+`pnpm test` runs **183 tests**, all passing: 49 engine unit tests, 7 web tests and 127 API integration tests against real
 PostgreSQL and Redis (no database mocks). They cover only what matters:
 
 | Area | Covers |
@@ -319,7 +319,7 @@ PostgreSQL and Redis (no database mocks). They cover only what matters:
 | Auth | Login, refresh rotation, reuse revokes the family, rate limit, single-use email tokens |
 | Tenancy and permissions | The matrix in hard problem 5, staff limits, API key scope, demo restrictions, erasure permissions |
 | Webhooks | Signature verification, private-IP rejection after DNS resolution, redirects not followed, retries logged |
-| Public demo | With `PUBLIC_DEMO=true`, sign-up, invite acceptance and password reset return 403 `DEMO_MODE`; SMTP is never used; the seed covers the past 7 days and next 14, so the current week is never empty |
+| Public demo | With `PUBLIC_DEMO=true`, sign-up, invite acceptance and password reset return 403 `DEMO_MODE`; SMTP is never used; the seed covers the past 7 days and next 14; demo businesses are capped (403 `DEMO_LIMIT`) and re-seeding clears the public cache |
 | Forms | Every form posts with `method="post"` and stays disabled until hydrated, so form data can never end up in a URL |
 
 ## Decisions

@@ -1,7 +1,7 @@
 // README demo GIF from the live site: `pnpm demo-gif` (needs ffmpeg on PATH, e.g. `sudo apt install ffmpeg`).
 // Books a slot on /b/demo-physio, shows it on the dashboard calendar, runs the landing page's
 // "100 requests, one slot" demo, then CANCELS the test booking (the cancelled row disappears at the
-// nightly demo reseed). Output: docs/images/demo.gif (< 5 MB). Override the site with BASE_URL.
+// next demo reseed). Output: docs/images/demo.gif (< 5 MB). Override the site with BASE_URL.
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readdir, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

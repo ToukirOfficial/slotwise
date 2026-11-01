@@ -3,19 +3,25 @@ import { Inject, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 import { requestContext } from '../common/request-context.js';
 import { APP_CONFIG, type AppConfig } from '../config.js';
-import { seedDemo } from '../demo/seed.js';
+import { PublicCache } from '../business/public-cache.js';
+import { reseedDemo } from '../demo/seed.js';
 import { CleanupService } from '../maintenance/cleanup.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ReminderScheduler } from './reminder.scheduler.js';
 import { MAINTENANCE_QUEUE, type MaintenanceJobName } from './queues.js';
 
-/** Repeating jobs, registered when the worker starts. Times are UK local time. */
-const SCHEDULES: { name: MaintenanceJobName; repeat: { every: number } | { pattern: string; tz: string } }[] = [
+type Schedule = { name: MaintenanceJobName; repeat: { every: number } | { pattern: string; tz: string } };
+
+/**
+ * Repeating jobs, registered when the worker starts. Times are UK local time.
+ * The demo clinic resets nightly, or every hour on a public demo (PUBLIC_DEMO), so abuse never lasts long.
+ */
+export const schedulesFor = (config: Pick<AppConfig, 'PUBLIC_DEMO'>): Schedule[] => [
   { name: 'outbox-relay', repeat: { every: 5_000 } },
   { name: 'reminder-reconcile', repeat: { pattern: '7 * * * *', tz: 'Europe/London' } },
   { name: 'cleanup', repeat: { pattern: '0 3 * * *', tz: 'Europe/London' } },
-  { name: 'demo-reseed', repeat: { pattern: '0 4 * * *', tz: 'Europe/London' } },
+  { name: 'demo-reseed', repeat: { pattern: config.PUBLIC_DEMO ? '0 * * * *' : '0 4 * * *', tz: 'Europe/London' } },
 ];
 
 @Processor(MAINTENANCE_QUEUE, { concurrency: 1 })
@@ -29,12 +35,13 @@ export class MaintenanceProcessor extends WorkerHost implements OnApplicationBoo
     @Inject(CleanupService) private readonly cleanup: CleanupService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    @Inject(PublicCache) private readonly cache: PublicCache,
   ) {
     super();
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    for (const s of SCHEDULES) {
+    for (const s of schedulesFor(this.config)) {
       await this.queue.upsertJobScheduler(s.name, s.repeat, {
         name: s.name,
         opts: { removeOnComplete: true, removeOnFail: 50 },
@@ -59,7 +66,7 @@ export class MaintenanceProcessor extends WorkerHost implements OnApplicationBoo
       case 'cleanup':
         return this.cleanup.run();
       case 'demo-reseed':
-        await seedDemo(this.prisma, this.config.MANAGE_TOKEN_SECRET);
+        await reseedDemo(this.prisma, this.config.MANAGE_TOKEN_SECRET, this.cache);
         this.log.log('demo business re-seeded');
         return undefined;
     }

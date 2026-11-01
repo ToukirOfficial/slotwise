@@ -1,0 +1,31 @@
+# Weekly dependency updates. Security updates are raised as soon as an advisory is published
+# (enable "Dependabot security updates" in the repository settings).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for routine minor/patch updates; majors arrive one by one.
+      minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'chore(deps)'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/London
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: 'ci(deps)'

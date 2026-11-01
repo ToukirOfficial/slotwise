@@ -5,6 +5,25 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+
+- Next.js 16.4.3 (fixes two critical remote code execution advisories and a denial of service), zod 4.6.7,
+  nodemailer 10.3.1, and patched transitive dependencies (body-parser, multer, qs, fast-uri, vite, minimatch)
+  through pnpm overrides. `pnpm audit` reports no known vulnerabilities.
+- The shadcn CLI is no longer a dependency (its one stylesheet is vendored), which removes its dependency tree
+  from installs.
+- Public demo: the demo clinic resets every hour, and demo businesses are capped at 20 services, 15 staff, 300
+  bookings and 300 customers (`403 DEMO_LIMIT`).
+
+### Fixed
+
+- Re-seeding the demo now clears its cached public profile, so the widget never offers old service ids
+  (which made bookings fail for up to a minute after each reset).
+
+### Added
+
+- Dependabot version updates for npm and GitHub Actions, weekly.
+
 ## [1.0.0] - 2026-11-01
 
 The first public release. Live demo: <https://slotwise.toukirahmedrony.com>.

@@ -51,7 +51,7 @@ function LoginForm() {
       {publicDemo ? (
         <p className="text-sm text-muted-foreground">
           Public demo: the login is filled in for you. Sign-up and password reset are switched off, and the demo clinic
-          resets every night.
+          resets every hour.
         </p>
       ) : (
         <div className="flex justify-between text-sm">

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createContext, useContext } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-/** The public demo login (also in the README). The demo business resets every night. */
+/** The public demo login (also in the README). The demo business resets every hour. */
 export const DEMO_LOGIN = { email: 'demo@slotwise.example', password: 'demo-physio-2026' } as const;
 
 const PublicDemo = createContext(false);

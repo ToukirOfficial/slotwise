@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ErrorCode, type PageQuery, type Staff } from '@slotwise/shared';
 import { type AuthContext } from '../common/auth.js';
+import { assertDemoRoom } from '../common/demo-limits.js';
 import { AppError, notFound } from '../common/errors.js';
 import { idPage, toPage } from '../common/pagination.js';
 import { Prisma } from '../generated/prisma/client.js';
@@ -54,6 +55,7 @@ export class StaffService {
   }
 
   async create(auth: AuthContext, displayName: string): Promise<Staff> {
+    if (auth.isDemo) await assertDemoRoom(this.prisma, auth.businessId, 'staff');
     const s = await this.prisma.staff.create({ data: { businessId: auth.businessId, displayName }, include });
     await this.cache.forgetBusiness(auth.businessId);
     return this.toDto(auth, s);
