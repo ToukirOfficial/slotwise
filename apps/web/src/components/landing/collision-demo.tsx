@@ -52,16 +52,23 @@ export function CollisionDemo() {
   return (
     <figure
       aria-label="Demo: 100 simultaneous bookings for the same 10:30 slot. One succeeds, 99 are refused."
-      className="overflow-hidden rounded-lg border border-[var(--graphite-line)] bg-[var(--graphite)] text-white shadow-[0_24px_60px_-28px_rgba(21,24,29,0.55)]"
+      className="overflow-hidden rounded-2xl border border-[var(--graphite-line)] bg-[var(--graphite)] text-white shadow-[0_2px_4px_rgba(20,20,24,0.06),0_40px_80px_-36px_rgba(20,20,24,0.6)]"
     >
-      <div className="flex items-center justify-between border-b border-[var(--graphite-line)] px-4 py-2.5 text-[13px]">
-        <span className="font-medium">Tue 3 Nov, Dr Amira Khan</span>
+      <div className="flex items-center justify-between border-b border-[var(--graphite-line)] px-4 py-3 text-[13px]">
+        <span className="flex items-center gap-3">
+          <span className="flex gap-1.5" aria-hidden>
+            <span className="size-2.5 rounded-full bg-[var(--graphite-line)]" />
+            <span className="size-2.5 rounded-full bg-[var(--graphite-line)]" />
+            <span className="size-2.5 rounded-full bg-[var(--graphite-line)]" />
+          </span>
+          <span className="font-medium">Tue 3 Nov, Dr Amira Khan</span>
+        </span>
         <span className="text-[var(--graphite-text)]">UK time</span>
       </div>
 
       <div className="grid sm:grid-cols-[1fr_1.1fr]">
         {/* The diary column */}
-        <ol className="grid gap-1.5 p-3 sm:border-r sm:border-[var(--graphite-line)]">
+        <ol className="grid gap-1.5 p-3.5 sm:border-r sm:border-[var(--graphite-line)]">
           {SLOTS.map((t, i) => {
             const isTarget = i === TARGET;
             const taken = BOOKED[i];
@@ -69,11 +76,11 @@ export function CollisionDemo() {
               <li
                 key={t}
                 className={[
-                  'flex items-center gap-3 rounded-md border px-3 py-2 text-[13px] transition-colors duration-300',
+                  'flex items-center gap-3 rounded-lg border px-3 py-2.5 text-[13px] transition-colors duration-300',
                   isTarget && won
-                    ? 'border-[#5b82f5] bg-[#2453e0] text-white'
+                    ? 'border-[var(--primary)] bg-[var(--primary)] font-medium text-white'
                     : isTarget
-                      ? 'border-dashed border-[#5b82f5]/70 bg-[#2453e0]/10'
+                      ? 'border-dashed border-[var(--signal-dark)]/70 bg-[var(--signal-dark)]/10 text-white'
                       : taken
                         ? 'border-[var(--graphite-line)] bg-[var(--graphite-2)] text-[var(--graphite-text)]'
                         : 'border-[var(--graphite-line)] text-[var(--graphite-text)]',
@@ -89,7 +96,7 @@ export function CollisionDemo() {
         </ol>
 
         {/* The request log */}
-        <div className="flex min-h-[214px] flex-col border-t border-[var(--graphite-line)] p-3 font-mono text-[12px] sm:border-t-0">
+        <div className="flex min-h-[236px] flex-col border-t border-[var(--graphite-line)] p-3.5 font-mono text-[12px] sm:border-t-0">
           <div className="mb-2 flex justify-between text-[var(--graphite-text)]">
             <span>POST /bookings 10:30</span>
             <span className="tabular-nums">{sent}/{TOTAL}</span>
@@ -100,7 +107,7 @@ export function CollisionDemo() {
               return (
                 <li key={n} className="flex justify-between gap-2 tabular-nums">
                   <span className="text-[var(--graphite-text)]">req {String(n + 1).padStart(3, '0')}</span>
-                  <span className={ok ? 'font-semibold text-[#8fa9f7]' : 'text-[#7d8592]'}>
+                  <span className={ok ? 'font-semibold text-[var(--signal-dark)]' : 'text-[#7d8592]'}>
                     {ok ? '201 Created' : '409 SLOT_TAKEN'}
                   </span>
                 </li>
@@ -112,7 +119,7 @@ export function CollisionDemo() {
               {done ? (
                 <>
                   <span className="font-semibold text-white">1 booked</span>
-                  <span className="text-[var(--graphite-text)]">, 99 refused, 1 row in the table</span>
+                  <span className="text-[var(--graphite-text)]">, 99 refused</span>
                 </>
               ) : (
                 <span className="text-[var(--graphite-text)]">Sending at once…</span>

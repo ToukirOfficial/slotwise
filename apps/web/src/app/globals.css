@@ -150,6 +150,34 @@
   background-size: 100% 48px, 25% 100%;
 }
 
+/* Landing page only: graphite ink with one red-orange signal. The app keeps its own palette. */
+.landing {
+  --background: #f7f7f8;
+  --foreground: #17181b;
+  --card: #ffffff;
+  --card-foreground: #17181b;
+  --primary: #d9391b;
+  --primary-foreground: #ffffff;
+  --primary-hover: #bd2f14;
+  --accent: #fdeee9;
+  --accent-foreground: #9e2a12;
+  --ring: #d9391b;
+  --muted: #eeeff1;
+  --muted-foreground: #5d626c;
+  --border: #e3e4e8;
+  --input: #d6d8dd;
+  --graphite: #1a1c20;
+  --graphite-2: #24272c;
+  --graphite-line: #33363d;
+  --graphite-text: #a4a9b3;
+  --signal-dark: #ff6a45;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-landing), var(--font-sans), system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'tnum' 0;
+}
+.landing ::selection { background: color-mix(in srgb, #d9391b 20%, transparent); }
+
 .hatch {
   background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, currentColor 18%, transparent) 6px 7px);
 }
