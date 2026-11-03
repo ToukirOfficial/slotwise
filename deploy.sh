@@ -86,7 +86,8 @@ cd "$R"
 rm -rf .git PRD.md plan.md
 export CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 NEXT_TELEMETRY_DISABLED=1
 pnpm install --frozen-lockfile >/dev/null
-API_URL="$API_URL" pnpm build >/dev/null
+# prisma generate reads DATABASE_URL from its config but never connects: a placeholder is enough to build.
+API_URL="$API_URL" DATABASE_URL="postgresql://build:build@localhost:5432/build" pnpm build >/dev/null
 # Next.js bakes the /api rewrite into the build: refuse to ship one that points anywhere else.
 grep -q "$API_URL" apps/web/.next/routes-manifest.json || { echo "✗ The web build doesn't proxy /api to $API_URL"; exit 1; }
 # Keep only production dependencies (Prisma's CLI stays: it is a production dependency of the API).
