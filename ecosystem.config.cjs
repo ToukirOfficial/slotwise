@@ -9,7 +9,7 @@ module.exports = {
       args: 'start --hostname 127.0.0.1',
       node_args: '--env-file=../../.env',
       env: { NODE_ENV: 'production' },
-      max_memory_restart: '400M',
+      max_memory_restart: '300M',
     },
     {
       name: 'slotwise-api',
@@ -18,7 +18,7 @@ module.exports = {
       node_args: '--env-file=../../.env',
       exec_mode: 'fork', // one process: the in-memory rate limiter relies on it (keep the API to a single process)
       env: { NODE_ENV: 'production' },
-      max_memory_restart: '400M',
+      max_memory_restart: '300M',
     },
     {
       name: 'slotwise-worker',
@@ -27,7 +27,7 @@ module.exports = {
       node_args: '--env-file=../../.env',
       exec_mode: 'fork',
       env: { NODE_ENV: 'production' },
-      max_memory_restart: '300M',
+      max_memory_restart: '350M',
     },
   ],
 };
