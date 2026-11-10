@@ -18,7 +18,7 @@ working hours in UTC, quietly moves appointments by an hour on those days.
   staff) and passes them in.
 
 ## Alternatives
-- Luxon or date-fns-tz. They work, but their DST behaviour is implicit, and Temporal is native in Node 26.
+- Luxon or date-fns-tz. They work, but their DST behaviour is implicit, and Temporal gives explicit control (via `temporal-polyfill` on Node 24).
 - Storing hours as UTC or `TIME` columns. This is the classic bug: "09:00" changes meaning twice a year.
 
 ## Consequences

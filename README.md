@@ -19,6 +19,18 @@
 >
 > The demo clinic resets every hour and never sends email.
 
+### Run it in 2 minutes
+
+Needs Node.js 24, pnpm, PostgreSQL 16+ and Redis running locally (no Docker setup is provided).
+
+```bash
+git clone https://github.com/ToukirOfficial/slotwise.git && cd slotwise
+pnpm run setup   # .env with fresh secrets, install, databases, migrations, demo data
+pnpm dev
+```
+
+Open <http://localhost:8015/login?demo=1> and click **Log in** (`demo@slotwise.example` / `demo-physio-2026`).
+
 ### Proof
 
 | What | Result | Where it comes from |
@@ -42,7 +54,7 @@ A business adds one script tag and one HTML tag to its website. Its customers ca
 - trigger **reliable emails** (confirmation, reminder, cancellation) that are never lost and practically never duplicated.
 
 ```html
-<script src="https://<your-slotwise-domain>/widget/v1.js" defer></script>
+<script src="https://slotwise.toukirahmedrony.com/widget/v1.js" defer></script>
 <slotwise-booking business="demo-physio"></slotwise-booking>
 ```
 
@@ -66,6 +78,7 @@ A business adds one script tag and one HTML tag to its website. Its customers ca
 
 ## Contents
 
+- [Run it in 2 minutes](#run-it-in-2-minutes)
 - [Screenshots](#screenshots)
 - [Run it locally](#run-it-locally)
 - [Hard problems and how I solved them](#hard-problems-and-how-i-solved-them)
@@ -282,11 +295,11 @@ Next.js only displays. Every auth, permission and business rule lives in NestJS.
 | Outbox + deterministic job ids + send log | Survives crashes on either side of the commit, and dedupes retries |
 | Separate worker process | Email and webhook latency or retries never block API requests |
 | Pure engine package | The trickiest logic is fast to test exhaustively, without a database |
-| Temporal API | Explicit wall-clock vs instant, explicit DST handling. Native in Node 26 |
+| Temporal API | Explicit wall-clock vs instant, explicit DST handling. Runs on Node 24 via `temporal-polyfill` |
 | Web Component + Shadow DOM | Works on any site (WordPress, Laravel, plain HTML) with no CSS clashes |
 | Zod as Standard Schema | NestJS 12 validates and serializes with the same schemas that generate the docs |
 
-Stack: TypeScript 6 (strict), NestJS 12, Next.js 16.3, Prisma 7 + PostgreSQL 16 or newer, Redis + BullMQ, Zod 4,
+Stack: TypeScript 6 (strict), NestJS 12, Next.js 16.4, Prisma 7 + PostgreSQL 16 or newer, Redis + BullMQ, Zod 4,
 Temporal, Tailwind + shadcn/ui, Vitest + Supertest. Runs on any Linux server with PM2. No Docker, no cloud services.
 
 ## Security
